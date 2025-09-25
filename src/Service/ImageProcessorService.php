@@ -102,9 +102,8 @@ class ImageProcessorService {
       $fileEntity->setSize(strlen($decodedData));
       $fileEntity->save();
 
-      // Save the media entity with new revision.
-      $media->save();
-
+      // Note: Don't save the media entity here to avoid recursion.
+      // The media entity will be saved by the calling form/process.
       $this->logger->info('Successfully saved edited image for media @id.', ['@id' => $media->id()]);
       return TRUE;
     }

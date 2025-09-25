@@ -27,7 +27,8 @@ class ImageEditorController extends ControllerBase {
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
-    return new self(
+    // @phpstan-ignore-next-line
+    return new static(
       $container->get('toast_image_editor.image_processor'),
     );
   }

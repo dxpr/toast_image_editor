@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\toast_image_editor\Form;
 
-use Drupal\Core\Render\Markup;
-use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
+use Drupal\Core\Render\Markup;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -17,21 +16,19 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class SettingsForm extends ConfigFormBase {
 
   /**
-   * Constructs a SettingsForm object.
+   * Constructs a new SettingsForm object.
    */
   public function __construct(
-    ConfigFactoryInterface $config_factory,
     protected ModuleExtensionList $extensionListModule,
   ) {
-    parent::__construct($config_factory);
+    // ConfigFormBase doesn't need constructor parameters.
   }
 
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container): static {
+  public static function create(ContainerInterface $container): self {
     return new self(
-      $container->get('config.factory'),
       $container->get('extension.list.module'),
     );
   }
