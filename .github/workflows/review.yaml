@@ -1,0 +1,26 @@
+name: Review
+
+on: pull_request
+
+jobs:
+
+  drupal-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Lint Drupal
+      run: |
+        docker compose run --rm drupal-lint
+
+  drupal-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Drupal Deprecations and Analysis Check
+      run: |
+        docker compose run --rm drupal-check
+      env:
+        DRUPAL_RECOMMENDED_PROJECT: ${{ secrets.DRUPAL_RECOMMENDED_PROJECT }}

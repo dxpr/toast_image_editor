@@ -4,13 +4,37 @@ declare(strict_types=1);
 
 namespace Drupal\toast_image_editor\Form;
 
+use Drupal\Core\Render\Markup;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Configuration form for Toast Image Editor settings.
  */
 class SettingsForm extends ConfigFormBase {
+
+  /**
+   * Constructs a SettingsForm object.
+   */
+  public function __construct(
+    ConfigFactoryInterface $config_factory,
+    protected ModuleExtensionList $extensionListModule,
+  ) {
+    parent::__construct($config_factory);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container): static {
+    return new self(
+      $container->get('config.factory'),
+      $container->get('extension.list.module'),
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -41,7 +65,7 @@ class SettingsForm extends ConfigFormBase {
     $tools = $this->getAvailableTools();
     $enabledTools = $config->get('enabled_tools') ?: array_keys($tools);
 
-    // Create a container for the checkboxes grid
+    // Create a container for the checkboxes grid.
     $form['tools']['enabled_tools'] = [
       '#type' => 'checkboxes',
       '#title' => $this->t('Available Tools'),
@@ -53,10 +77,10 @@ class SettingsForm extends ConfigFormBase {
       ],
     ];
 
-    // Build options with icons
+    // Build options with icons.
     foreach ($tools as $key => $tool) {
       $icon = $this->getToolIcon($key);
-      $form['tools']['enabled_tools']['#options'][$key] = $icon . ' ' . $tool['title'];
+      $form['tools']['enabled_tools']['#options'][$key] = Markup::create($icon . ' ' . $tool['title']);
     }
 
     $form['ui_settings'] = [
@@ -93,7 +117,7 @@ class SettingsForm extends ConfigFormBase {
       '#default_value' => $config->get('theme') ?: 'white',
     ];
 
-    // Attach CSS for the grid layout
+    // Attach CSS for the grid layout.
     $form['#attached']['library'][] = 'toast_image_editor/toast-image-editor-settings';
 
     return parent::buildForm($form, $form_state);
@@ -103,7 +127,7 @@ class SettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    // Get enabled tools from checkboxes array
+    // Get enabled tools from checkboxes array.
     $enabledTools = array_filter($form_state->getValue('enabled_tools', []));
 
     $this->config('toast_image_editor.settings')
@@ -173,7 +197,21 @@ class SettingsForm extends ConfigFormBase {
    *   Icon markup.
    */
   protected function getToolIcon(string $tool): string {
-    $icons = [
+    $modulePath = $this->extensionListModule->getPath('toast_image_editor');
+    $iconPath = $modulePath . '/assets/icons/ic-' . ($tool === 'rotation' ? 'rotate' : $tool) . '.svg';
+
+    // Check if the SVG file exists.
+    if (file_exists(DRUPAL_ROOT . '/' . $iconPath)) {
+      $svgContent = file_get_contents(DRUPAL_ROOT . '/' . $iconPath);
+      if ($svgContent !== FALSE) {
+        // Clean up the SVG and add classes.
+        $svgContent = preg_replace('/<svg/', '<svg class="tool-icon-svg"', $svgContent, 1);
+        return '<span class="tool-icon">' . $svgContent . '</span>';
+      }
+    }
+
+    // Fallback to text icons if SVG not found.
+    $fallbackIcons = [
       'crop' => '✂',
       'flip' => '↔',
       'rotation' => '↻',
@@ -185,7 +223,7 @@ class SettingsForm extends ConfigFormBase {
       'filter' => '⚡',
     ];
 
-    return '<span class="tool-icon">' . ($icons[$tool] ?? '●') . '</span>';
+    return '<span class="tool-icon">' . ($fallbackIcons[$tool] ?? '●') . '</span>';
   }
 
 }

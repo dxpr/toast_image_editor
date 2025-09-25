@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\toast_image_editor\Service;
 
+use Drupal\Core\File\FileExists;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileSystemInterface;
@@ -39,7 +40,12 @@ class ImageProcessorService {
    */
   public function saveEditedImage(MediaInterface $media, string $imageData): bool {
     try {
-      $sourceField = $media->getSource()->getSourceFieldDefinition($media->bundle->entity);
+      $mediaType = $this->entityTypeManager->getStorage('media_type')->load($media->bundle());
+      if (!$mediaType) {
+        $this->logger->error('Media type not found for media @id.', ['@id' => $media->id()]);
+        return FALSE;
+      }
+      $sourceField = $media->getSource()->getSourceFieldDefinition($mediaType);
       $fieldName = $sourceField->getName();
 
       if (!$media->hasField($fieldName) || $media->get($fieldName)->isEmpty()) {
@@ -53,29 +59,30 @@ class ImageProcessorService {
         return FALSE;
       }
 
-      // Decode base64 image data
-      $decodedData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $imageData));
-      if ($decodedData === FALSE) {
+      // Decode base64 image data.
+      $decodedData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $imageData), TRUE);
+      if ($decodedData === FALSE || $decodedData === '') {
         $this->logger->error('Invalid base64 image data for media @id.', ['@id' => $media->id()]);
         return FALSE;
       }
 
-      // Create a new revision
+      // Create a new revision.
       $media->setNewRevision(TRUE);
       $media->setRevisionLogMessage('Image edited with Toast Image Editor');
 
-      // Save the new image data to the existing file
+      // Save the new image data to the existing file.
       $uri = $fileEntity->getFileUri();
-      if ($this->fileSystem->saveData($decodedData, $uri, FileSystemInterface::EXISTS_REPLACE) === FALSE) {
+      $result = $this->fileSystem->saveData($decodedData, $uri, FileExists::Replace);
+      if (!$result) {
         $this->logger->error('Failed to save edited image data for media @id.', ['@id' => $media->id()]);
         return FALSE;
       }
 
-      // Update file size
+      // Update file size.
       $fileEntity->setSize(strlen($decodedData));
       $fileEntity->save();
 
-      // Save the media entity with new revision
+      // Save the media entity with new revision.
       $media->save();
 
       $this->logger->info('Successfully saved edited image for media @id.', ['@id' => $media->id()]);
@@ -100,13 +107,17 @@ class ImageProcessorService {
    *   TRUE if the media can be edited, FALSE otherwise.
    */
   public function canEditMedia(MediaInterface $media): bool {
-    // Check if it's an image media type
+    // Check if it's an image media type.
     $sourcePlugin = $media->getSource();
     if ($sourcePlugin->getPluginId() !== 'image') {
       return FALSE;
     }
 
-    $sourceField = $sourcePlugin->getSourceFieldDefinition($media->bundle->entity);
+    $mediaType = $this->entityTypeManager->getStorage('media_type')->load($media->bundle());
+    if (!$mediaType) {
+      return FALSE;
+    }
+    $sourceField = $sourcePlugin->getSourceFieldDefinition($mediaType);
     $fieldName = $sourceField->getName();
 
     if (!$media->hasField($fieldName) || $media->get($fieldName)->isEmpty()) {
@@ -118,7 +129,7 @@ class ImageProcessorService {
       return FALSE;
     }
 
-    // Check if file exists and is readable
+    // Check if file exists and is readable.
     $uri = $fileEntity->getFileUri();
     return $this->fileSystem->realpath($uri) && is_readable($this->fileSystem->realpath($uri));
   }

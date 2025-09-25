@@ -86,6 +86,11 @@
         usageStatistics: false
       });
 
+      // Hide disabled tools after initialization
+      setTimeout(() => {
+        hideDisabledTools(config.enabledTools);
+      }, 500);
+
       // Add event listeners for tracking changes
       imageEditor.on('undoStackChanged', function(length) {
         // Store the current state so it can be saved with the form
@@ -160,6 +165,33 @@
     }
 
     return enabledMenus.length > 0 ? enabledMenus : allMenus;
+  }
+
+  /**
+   * Hide disabled tools from the toolbar.
+   */
+  function hideDisabledTools(enabledTools) {
+    if (!enabledTools || !Array.isArray(enabledTools)) {
+      return;
+    }
+
+    const allTools = ['resize', 'crop', 'flip', 'rotate', 'draw', 'shape', 'icon', 'text', 'mask', 'filter'];
+    const toolMapping = {
+      'rotation': 'rotate'
+    };
+
+    allTools.forEach(function(tool) {
+      const mappedTool = toolMapping[tool] || tool;
+      const isEnabled = enabledTools.includes(tool) || enabledTools.includes(mappedTool);
+
+      if (!isEnabled) {
+        const toolButton = document.querySelector(`.tie-btn-${tool}`);
+        if (toolButton) {
+          toolButton.style.display = 'none';
+          console.log(`Hiding tool: ${tool}`);
+        }
+      }
+    });
   }
 
   /**
