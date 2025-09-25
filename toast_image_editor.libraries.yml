@@ -46,3 +46,8 @@ toast-image-editor-integration:
   dependencies:
     - toast_image_editor/toast-ui-image-editor
     - core/once
+
+toast-image-editor-settings:
+  css:
+    theme:
+      css/toast-image-editor-settings.css: {}

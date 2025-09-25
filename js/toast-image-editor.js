@@ -37,15 +37,21 @@
       console.log('Initializing Toast Image Editor with image:', originalImageUrl);
       initializeEditor(settings.toastImageEditor);
 
-      // Handle save button click
-      const saveButton = document.getElementById('save-edited-image');
-      if (saveButton && !saveButton.dataset.listenerAdded) {
-        saveButton.dataset.listenerAdded = 'true';
-        saveButton.addEventListener('click', function(e) {
-          e.preventDefault();
-          saveEditedImage(settings.toastImageEditor);
-        });
-      }
+      // Attach form submit handler after editor is initialized
+      setTimeout(() => {
+        attachFormSubmitHandler(settings.toastImageEditor);
+      }, 1000);
+
+      // Handle image editor changes - mark form as changed
+      imageEditor.on('undoStackChanged', function(length) {
+        if (length > 0) {
+          // Mark the main Drupal form as changed
+          const mainForm = document.querySelector('form[data-drupal-selector*="media"]');
+          if (mainForm) {
+            mainForm.classList.add('has-unsaved-changes');
+          }
+        }
+      });
     }
   };
 
@@ -69,7 +75,6 @@
             path: originalImageUrl,
             name: 'EditableImage'
           },
-          initMenu: 'crop',
           uiSize: {
             width: '100%',
             height: '600px'
@@ -81,18 +86,11 @@
         usageStatistics: false
       });
 
-      // Show the save button once editor is initialized
-      const saveButton = document.getElementById('save-edited-image');
-      if (saveButton) {
-        saveButton.style.display = 'block';
-      }
-
-      // Add event listeners
+      // Add event listeners for tracking changes
       imageEditor.on('undoStackChanged', function(length) {
-        const saveBtn = document.getElementById('save-edited-image');
-        if (saveBtn && length > 0) {
-          saveBtn.disabled = false;
-          saveBtn.classList.remove('is-disabled');
+        // Store the current state so it can be saved with the form
+        if (length > 0) {
+          window.toastImageEditorHasChanges = true;
         }
       });
 
@@ -165,90 +163,35 @@
   }
 
   /**
-   * Save the edited image.
+   * Hook into the main form submission to save image changes.
    */
-  function saveEditedImage(config) {
-    if (!imageEditor) {
-      console.error('Image editor not initialized');
+  function attachFormSubmitHandler(config) {
+    const mainForm = document.querySelector('form[data-drupal-selector*="media"]');
+    if (!mainForm) {
       return;
     }
 
-    try {
-      // Show loading state
-      const saveButton = document.getElementById('save-edited-image');
-      if (!saveButton) {
-        console.error('Save button not found');
-        return;
-      }
-
-      const originalText = saveButton.value;
-      saveButton.value = 'Saving...';
-      saveButton.disabled = true;
-      saveButton.classList.add('is-disabled');
-
-      // Get the edited image data
-      const imageData = imageEditor.toDataURL();
-
-      // Prepare form data
-      const formData = new FormData();
-      formData.append('imageData', imageData);
-
-      // Add CSRF token if available
-      const tokenElement = document.querySelector('meta[name="csrf-token"]');
-      if (tokenElement) {
-        formData.append('_token', tokenElement.getAttribute('content'));
-      }
-
-      // Send fetch request to save the image
-      fetch(config.saveUrl, {
-        method: 'POST',
-        body: formData,
-        credentials: 'same-origin',
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest'
-        }
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          // Show success message
-          if (Drupal.announce) {
-            Drupal.announce(Drupal.t('Image saved successfully'));
-          }
-
-          // Optionally redirect or reload
-          if (data.redirect) {
-            window.location.href = data.redirect;
-          } else {
-            // Reset the save button and show success
-            saveButton.value = 'Saved!';
-            saveButton.classList.remove('is-disabled');
-            setTimeout(() => {
-              saveButton.value = originalText;
-              saveButton.disabled = false;
-            }, 2000);
-          }
-        } else {
-          throw new Error(data.message || 'Failed to save image');
-        }
-      })
-      .catch(error => {
-        console.error('Error saving image:', error);
-        if (Drupal.announce) {
-          Drupal.announce(Drupal.t('Error saving image: @error', {'@error': error.message}));
-        }
-
-        // Reset button state
-        saveButton.value = originalText;
-        saveButton.disabled = false;
-        saveButton.classList.remove('is-disabled');
-      });
-    } catch (error) {
-      console.error('Failed to save edited image:', error);
-      if (Drupal.announce) {
-        Drupal.announce(Drupal.t('Failed to save image'));
-      }
+    // Add a hidden field to store image data
+    let hiddenField = mainForm.querySelector('input[name="toast_image_editor_data"]');
+    if (!hiddenField) {
+      hiddenField = document.createElement('input');
+      hiddenField.type = 'hidden';
+      hiddenField.name = 'toast_image_editor_data';
+      mainForm.appendChild(hiddenField);
     }
+
+    // Listen for form submission
+    mainForm.addEventListener('submit', function(e) {
+      if (window.toastImageEditorHasChanges && imageEditor) {
+        try {
+          // Get the edited image data and store it in the hidden field
+          const imageData = imageEditor.toDataURL();
+          hiddenField.value = imageData;
+        } catch (error) {
+          console.error('Error getting image data:', error);
+        }
+      }
+    });
   }
 
 })(Drupal, drupalSettings, once);

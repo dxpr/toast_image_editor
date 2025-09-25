@@ -41,13 +41,22 @@ class SettingsForm extends ConfigFormBase {
     $tools = $this->getAvailableTools();
     $enabledTools = $config->get('enabled_tools') ?: array_keys($tools);
 
+    // Create a container for the checkboxes grid
+    $form['tools']['enabled_tools'] = [
+      '#type' => 'checkboxes',
+      '#title' => $this->t('Available Tools'),
+      '#title_display' => 'invisible',
+      '#options' => [],
+      '#default_value' => $enabledTools,
+      '#attributes' => [
+        'class' => ['toast-image-editor-tools-grid'],
+      ],
+    ];
+
+    // Build options with icons
     foreach ($tools as $key => $tool) {
-      $form['tools']['enabled_tools'][$key] = [
-        '#type' => 'checkbox',
-        '#title' => $tool['title'],
-        '#description' => $tool['description'],
-        '#default_value' => in_array($key, $enabledTools),
-      ];
+      $icon = $this->getToolIcon($key);
+      $form['tools']['enabled_tools']['#options'][$key] = $icon . ' ' . $tool['title'];
     }
 
     $form['ui_settings'] = [
@@ -84,20 +93,8 @@ class SettingsForm extends ConfigFormBase {
       '#default_value' => $config->get('theme') ?: 'white',
     ];
 
-    $form['performance'] = [
-      '#type' => 'fieldset',
-      '#title' => $this->t('Performance Settings'),
-    ];
-
-    $form['performance']['max_file_size'] = [
-      '#type' => 'number',
-      '#title' => $this->t('Maximum File Size'),
-      '#description' => $this->t('Maximum file size for images that can be edited (in MB).'),
-      '#default_value' => $config->get('max_file_size') ?: 10,
-      '#min' => 1,
-      '#max' => 100,
-      '#step' => 1,
-    ];
+    // Attach CSS for the grid layout
+    $form['#attached']['library'][] = 'toast_image_editor/toast-image-editor-settings';
 
     return parent::buildForm($form, $form_state);
   }
@@ -106,19 +103,14 @@ class SettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    $enabledTools = [];
-    foreach ($form_state->getValue(['enabled_tools'], []) as $key => $enabled) {
-      if ($enabled) {
-        $enabledTools[] = $key;
-      }
-    }
+    // Get enabled tools from checkboxes array
+    $enabledTools = array_filter($form_state->getValue('enabled_tools', []));
 
     $this->config('toast_image_editor.settings')
-      ->set('enabled_tools', $enabledTools)
+      ->set('enabled_tools', array_keys($enabledTools))
       ->set('editor_width', (int) $form_state->getValue('editor_width'))
       ->set('editor_height', (int) $form_state->getValue('editor_height'))
       ->set('theme', $form_state->getValue('theme'))
-      ->set('max_file_size', (int) $form_state->getValue('max_file_size'))
       ->save();
 
     parent::submitForm($form, $form_state);
@@ -169,6 +161,31 @@ class SettingsForm extends ConfigFormBase {
         'description' => $this->t('Apply filters and effects to images.'),
       ],
     ];
+  }
+
+  /**
+   * Get icon for a tool.
+   *
+   * @param string $tool
+   *   Tool name.
+   *
+   * @return string
+   *   Icon markup.
+   */
+  protected function getToolIcon(string $tool): string {
+    $icons = [
+      'crop' => '✂',
+      'flip' => '↔',
+      'rotation' => '↻',
+      'draw' => '✏',
+      'shape' => '▢',
+      'icon' => '★',
+      'text' => 'T',
+      'mask' => '◐',
+      'filter' => '⚡',
+    ];
+
+    return '<span class="tool-icon">' . ($icons[$tool] ?? '●') . '</span>';
   }
 
 }

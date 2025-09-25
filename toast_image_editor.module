@@ -48,14 +48,10 @@ function toast_image_editor_form_media_form_alter(array &$form, FormStateInterfa
     '#markup' => '<div id="toast-image-editor"></div>',
   ];
 
-  $form['toast_image_editor']['save_edited'] = [
-    '#type' => 'button',
-    '#value' => t('Save Edited Image'),
-    '#attributes' => [
-      'id' => 'save-edited-image',
-      'class' => ['button--primary'],
-      'style' => 'display: none;',
-    ],
+  // Add a hidden field to store image editor data
+  $form['toast_image_editor_data'] = [
+    '#type' => 'hidden',
+    '#value' => '',
   ];
 
   // Attach the JavaScript library
@@ -137,9 +133,25 @@ function _toast_image_editor_get_image_url(MediaInterface $media): ?string {
  * Implements hook_entity_presave().
  */
 function toast_image_editor_entity_presave(EntityInterface $entity): void {
-  // Additional logic can be added here for entity pre-save operations
-  if ($entity instanceof MediaInterface && $entity->isNew() === FALSE) {
-    // Log media updates for audit trail
-    \Drupal::logger('toast_image_editor')->info('Media entity @id being saved', ['@id' => $entity->id()]);
+  // Check if this is a media entity with image editor data
+  if ($entity instanceof MediaInterface) {
+    $request = \Drupal::request();
+    $imageData = $request->request->get('toast_image_editor_data');
+
+    if (!empty($imageData) && strpos($imageData, 'data:image/') === 0) {
+      /** @var \Drupal\toast_image_editor\Service\ImageProcessorService $imageProcessor */
+      $imageProcessor = \Drupal::service('toast_image_editor.image_processor');
+
+      try {
+        // Save the edited image
+        $imageProcessor->saveEditedImage($entity, $imageData);
+        \Drupal::logger('toast_image_editor')->info('Image updated for media @id', ['@id' => $entity->id()]);
+      } catch (\Exception $e) {
+        \Drupal::logger('toast_image_editor')->error('Failed to save edited image for media @id: @message', [
+          '@id' => $entity->id(),
+          '@message' => $e->getMessage()
+        ]);
+      }
+    }
   }
 }
