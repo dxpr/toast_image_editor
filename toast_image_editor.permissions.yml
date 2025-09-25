@@ -1,0 +1,8 @@
+edit media images:
+  title: 'Edit media images'
+  description: 'Allows users to edit media images using Toast Image Editor'
+
+administer toast image editor:
+  title: 'Administer Toast Image Editor'
+  description: 'Configure Toast Image Editor settings and available tools'
+  restrict access: true

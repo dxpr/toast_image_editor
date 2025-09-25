@@ -1,0 +1,145 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * Toast Image Editor module implementation.
+ */
+
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\media\MediaInterface;
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function toast_image_editor_form_media_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  /** @var \Drupal\media\MediaInterface $media */
+  $media = $form_state->getFormObject()->getEntity();
+
+  // Only add image editor for image media types with existing files
+  if (!_toast_image_editor_can_edit_media($media)) {
+    return;
+  }
+
+  // Check permissions
+  $currentUser = \Drupal::currentUser();
+  if (!$currentUser->hasPermission('edit media images')) {
+    return;
+  }
+
+  // Add the image editor section
+  $form['toast_image_editor'] = [
+    '#type' => 'fieldset',
+    '#title' => t('Image Editor'),
+    '#weight' => 10,
+  ];
+
+  $form['toast_image_editor']['editor_container'] = [
+    '#type' => 'container',
+    '#attributes' => [
+      'id' => 'toast-image-editor-container',
+      'data-media-id' => $media->id(),
+    ],
+  ];
+
+  $form['toast_image_editor']['editor_placeholder'] = [
+    '#markup' => '<div id="toast-image-editor"></div>',
+  ];
+
+  $form['toast_image_editor']['save_edited'] = [
+    '#type' => 'button',
+    '#value' => t('Save Edited Image'),
+    '#attributes' => [
+      'id' => 'save-edited-image',
+      'class' => ['button--primary'],
+      'style' => 'display: none;',
+    ],
+  ];
+
+  // Attach the JavaScript library
+  $form['#attached']['library'][] = 'toast_image_editor/toast-image-editor-integration';
+
+  // Pass configuration to JavaScript
+  $config = \Drupal::config('toast_image_editor.settings');
+  $form['#attached']['drupalSettings']['toastImageEditor'] = [
+    'mediaId' => $media->id(),
+    'saveUrl' => \Drupal::service('url_generator')->generateFromRoute('toast_image_editor.media_save', ['media' => $media->id()]),
+    'enabledTools' => $config->get('enabled_tools') ?: _toast_image_editor_default_tools(),
+    'imageUrl' => _toast_image_editor_get_image_url($media),
+  ];
+}
+
+/**
+ * Helper function to check if media can be edited.
+ */
+function _toast_image_editor_can_edit_media(MediaInterface $media): bool {
+  $imageProcessor = \Drupal::service('toast_image_editor.image_processor');
+  return $imageProcessor->canEditMedia($media);
+}
+
+/**
+ * Helper function to get default enabled tools.
+ */
+function _toast_image_editor_default_tools(): array {
+  return [
+    'crop' => TRUE,
+    'flip' => TRUE,
+    'rotation' => TRUE,
+    'draw' => TRUE,
+    'shape' => TRUE,
+    'icon' => TRUE,
+    'text' => TRUE,
+    'mask' => TRUE,
+    'filter' => TRUE,
+  ];
+}
+
+/**
+ * Helper function to get image URL for the media entity.
+ */
+function _toast_image_editor_get_image_url(MediaInterface $media): ?string {
+  $sourceField = $media->getSource()->getSourceFieldDefinition($media->bundle->entity);
+  $fieldName = $sourceField->getName();
+
+  if (!$media->hasField($fieldName) || $media->get($fieldName)->isEmpty()) {
+    return NULL;
+  }
+
+  /** @var \Drupal\file\FileInterface $file */
+  $file = $media->get($fieldName)->entity;
+  if (!$file) {
+    return NULL;
+  }
+
+  // Generate relative URL first, then convert to absolute with current request base
+  $fileUrl = \Drupal::service('file_url_generator')->generateString($file->getFileUri());
+
+  // Get current request to ensure we use the correct domain
+  $request = \Drupal::request();
+  if ($request && $request->getHttpHost()) {
+    $scheme = $request->getScheme();
+    $host = $request->getHttpHost();
+    $baseUrl = $scheme . '://' . $host;
+
+    // Convert relative URL to absolute
+    if (strpos($fileUrl, '/') === 0) {
+      return $baseUrl . $fileUrl;
+    }
+  }
+
+  // Fallback to the service method
+  return \Drupal::service('file_url_generator')->generateAbsoluteString($file->getFileUri());
+}
+
+/**
+ * Implements hook_entity_presave().
+ */
+function toast_image_editor_entity_presave(EntityInterface $entity): void {
+  // Additional logic can be added here for entity pre-save operations
+  if ($entity instanceof MediaInterface && $entity->isNew() === FALSE) {
+    // Log media updates for audit trail
+    \Drupal::logger('toast_image_editor')->info('Media entity @id being saved', ['@id' => $entity->id()]);
+  }
+}

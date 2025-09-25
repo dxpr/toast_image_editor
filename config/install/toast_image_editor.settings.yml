@@ -1,0 +1,14 @@
+enabled_tools:
+  - crop
+  - flip
+  - rotation
+  - draw
+  - shape
+  - icon
+  - text
+  - mask
+  - filter
+editor_width: 800
+editor_height: 600
+theme: white
+max_file_size: 10

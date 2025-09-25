@@ -1,0 +1,147 @@
+/**
+ * @file
+ * Styles for Toast Image Editor integration.
+ */
+
+.toast-image-editor-container {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #fafafa;
+}
+
+#toast-image-editor {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  min-height: 400px;
+  position: relative;
+  overflow: hidden;
+}
+
+#toast-image-editor .loading,
+#toast-image-editor .error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  font-size: 1.1rem;
+  color: #666;
+}
+
+#toast-image-editor .error {
+  color: #d72222;
+  background-color: #ffeaea;
+}
+
+#save-edited-image {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+#save-edited-image:disabled,
+#save-edited-image.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Toast UI Image Editor customizations */
+.tui-image-editor-container {
+  max-width: 100%;
+  background-color: #ffffff;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tui-image-editor-header {
+  border-bottom: 1px solid #e0e0e0;
+  padding: 0.5rem 1rem;
+  background-color: #f8f9fa;
+  border-radius: 4px 4px 0 0;
+}
+
+.tui-image-editor-header .tui-image-editor-header-logo {
+  display: none;
+}
+
+.tui-image-editor-main-container {
+  border-radius: 0 0 4px 4px;
+}
+
+.tui-image-editor-menu {
+  background-color: #f8f9fa;
+  border-top: 1px solid #e0e0e0;
+}
+
+.tui-image-editor-submenu {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  #toast-image-editor {
+    min-height: 300px;
+  }
+
+  .tui-image-editor-container {
+    font-size: 0.9rem;
+  }
+
+  .tui-image-editor-menu {
+    padding: 0.25rem;
+  }
+}
+
+/* Details element styling */
+details[open] summary {
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Loading animation */
+.loading::after {
+  content: '';
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-left: 10px;
+  border: 2px solid #ccc;
+  border-radius: 50%;
+  border-top-color: #333;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Error state styling */
+.error {
+  border: 1px solid #d72222;
+  padding: 1rem;
+  border-radius: 4px;
+}
+
+/* Success state for save button */
+#save-edited-image.success {
+  background-color: #28a745;
+  border-color: #28a745;
+  color: white;
+}
+
+/* Hide load button and file input in contextual editing mode */
+.toast-image-editor-container .tui-image-editor-load-btn,
+.toast-image-editor-container input[type="file"],
+.toast-image-editor-container .tui-image-editor-header-buttons button:first-child {
+  display: none !important;
+}
+
+/* Hide the default load/download buttons area since we have our own save button */
+.tui-image-editor-header .tui-image-editor-header-buttons {
+  display: none !important;
+}
