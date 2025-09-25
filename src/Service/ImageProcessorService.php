@@ -102,6 +102,9 @@ class ImageProcessorService {
       $fileEntity->setSize(strlen($decodedData));
       $fileEntity->save();
 
+      // Clear image style cache for this image.
+      $this->clearImageStyleCache($uri);
+
       // Note: Don't save the media entity here to avoid recursion.
       // The media entity will be saved by the calling form/process.
       $this->logger->info('Successfully saved edited image for media @id.', ['@id' => $media->id()]);
@@ -177,6 +180,33 @@ class ImageProcessorService {
     }
 
     return $value;
+  }
+
+  /**
+   * Clear image style cache for a given image URI.
+   *
+   * @param string $uri
+   *   The file URI to clear cache for.
+   */
+  private function clearImageStyleCache(string $uri): void {
+    try {
+      /** @var \Drupal\image\ImageStyleStorageInterface $imageStyleStorage */
+      $imageStyleStorage = $this->entityTypeManager->getStorage('image_style');
+      $imageStyles = $imageStyleStorage->loadMultiple();
+
+      foreach ($imageStyles as $imageStyle) {
+        /** @var \Drupal\image\ImageStyleInterface $imageStyle */
+        $imageStyle->flush($uri);
+      }
+
+      $this->logger->info('Cleared image style cache for URI: @uri', ['@uri' => $uri]);
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('Failed to clear image style cache for URI @uri: @message', [
+        '@uri' => $uri,
+        '@message' => $e->getMessage(),
+      ]);
+    }
   }
 
 }
