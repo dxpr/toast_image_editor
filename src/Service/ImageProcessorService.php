@@ -59,8 +59,28 @@ class ImageProcessorService {
         return FALSE;
       }
 
-      // Decode base64 image data.
-      $decodedData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $imageData), TRUE);
+      // Extract and decode base64 image data with memory optimization.
+      $base64Data = preg_replace('#^data:image/\w+;base64,#i', '', $imageData);
+
+      // Check base64 data length to prevent memory issues.
+      $estimatedSize = (strlen($base64Data) * 3) / 4;
+      $memoryLimit = ini_get('memory_limit');
+      $memoryLimitBytes = $this->convertToBytes($memoryLimit);
+
+      if ($estimatedSize > ($memoryLimitBytes * 0.5)) {
+        $this->logger->error('Image data too large for media @id. Estimated size: @size bytes, Memory limit: @limit', [
+          '@id' => $media->id(),
+          '@size' => $estimatedSize,
+          '@limit' => $memoryLimit,
+        ]);
+        return FALSE;
+      }
+
+      $decodedData = base64_decode($base64Data, TRUE);
+
+      // Free up memory immediately.
+      unset($base64Data, $imageData);
+
       if ($decodedData === FALSE || $decodedData === '') {
         $this->logger->error('Invalid base64 image data for media @id.', ['@id' => $media->id()]);
         return FALSE;
@@ -132,6 +152,32 @@ class ImageProcessorService {
     // Check if file exists and is readable.
     $uri = $fileEntity->getFileUri();
     return $this->fileSystem->realpath($uri) && is_readable($this->fileSystem->realpath($uri));
+  }
+
+  /**
+   * Convert memory limit string to bytes.
+   *
+   * @param string $memoryLimit
+   *   Memory limit string (e.g., '512M', '1G').
+   *
+   * @return int
+   *   Memory limit in bytes.
+   */
+  private function convertToBytes(string $memoryLimit): int {
+    $memoryLimit = trim($memoryLimit);
+    $last = strtolower($memoryLimit[strlen($memoryLimit) - 1]);
+    $value = (int) $memoryLimit;
+
+    switch ($last) {
+      case 'g':
+        $value *= 1024;
+      case 'm':
+        $value *= 1024;
+      case 'k':
+        $value *= 1024;
+    }
+
+    return $value;
   }
 
 }

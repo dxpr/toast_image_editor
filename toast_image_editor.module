@@ -144,12 +144,25 @@ function _toast_image_editor_get_image_url(MediaInterface $media): ?string {
  * Implements hook_entity_presave().
  */
 function toast_image_editor_entity_presave(EntityInterface $entity): void {
+  // Prevent recursion by checking if we're already processing.
+  static $processing = [];
+
   // Check if this is a media entity with image editor data.
   if ($entity instanceof MediaInterface) {
+    $mediaId = $entity->id();
+
+    // Skip if we're already processing this media entity.
+    if (isset($processing[$mediaId])) {
+      return;
+    }
+
     $request = \Drupal::request();
     $imageData = $request->request->get('toast_image_editor_data');
 
     if (!empty($imageData) && strpos($imageData, 'data:image/') === 0) {
+      // Set processing flag to prevent recursion.
+      $processing[$mediaId] = TRUE;
+
       /** @var \Drupal\toast_image_editor\Service\ImageProcessorService $imageProcessor */
       $imageProcessor = \Drupal::service('toast_image_editor.image_processor');
 
@@ -163,6 +176,10 @@ function toast_image_editor_entity_presave(EntityInterface $entity): void {
           '@id' => $entity->id(),
           '@message' => $e->getMessage(),
         ]);
+      }
+      finally {
+        // Always clean up the processing flag.
+        unset($processing[$mediaId]);
       }
     }
   }
