@@ -69,6 +69,9 @@ function toast_image_editor_form_media_form_alter(array &$form, FormStateInterfa
   // Pass configuration to JavaScript.
   $config = \Drupal::config('toast_image_editor.settings');
   $form['#attached']['drupalSettings']['toastImageEditor'] = [
+    'width' => $config->get('editor_width') ? $config->get('editor_width') . 'px' : '100%',
+    'height' => $config->get('editor_height') ? $config->get('editor_height') . 'px' : '600px',
+    'theme' => $config->get('theme'),
     'mediaId' => $media->id(),
     'saveUrl' => \Drupal::service('url_generator')->generateFromRoute('toast_image_editor.media_save', ['media' => $media->id()]),
     'enabledTools' => $config->get('enabled_tools') ?: SettingsForm::defaultTools(),

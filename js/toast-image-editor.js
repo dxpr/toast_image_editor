@@ -76,8 +76,8 @@
             name: 'EditableImage'
           },
           uiSize: {
-            width: '100%',
-            height: '600px'
+            width: config.width || "100%",
+            height: config.height || "600px",
           },
           menuBarPosition: 'bottom'
         },

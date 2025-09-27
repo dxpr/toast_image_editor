@@ -101,9 +101,10 @@ class SettingsForm extends ConfigFormBase {
     $form['ui_settings']['editor_width'] = [
       '#type' => 'number',
       '#title' => $this->t('Editor Width'),
-      '#description' => $this->t('Width of the image editor in pixels.'),
-      '#default_value' => $config->get('editor_width') ?: 800,
-      '#min' => 400,
+      '#description' => $this->t('Width of the image editor in pixels.<br>Leave blank for full width (100%).'),
+      '#default_value' => (int) $config->get('editor_width') ?: 0,
+      '#field_suffix' => $this->t('px'),
+      '#min' => 0,
       '#max' => 2000,
     ];
 
@@ -111,7 +112,8 @@ class SettingsForm extends ConfigFormBase {
       '#type' => 'number',
       '#title' => $this->t('Editor Height'),
       '#description' => $this->t('Height of the image editor in pixels.'),
-      '#default_value' => $config->get('editor_height') ?: 600,
+      '#default_value' => (int) $config->get('editor_height') ?: 600,
+      '#field_suffix' => $this->t('px'),
       '#min' => 300,
       '#max' => 1500,
     ];
