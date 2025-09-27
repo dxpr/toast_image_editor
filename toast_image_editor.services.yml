@@ -1,7 +1,13 @@
 services:
   toast_image_editor.image_processor:
     class: Drupal\toast_image_editor\Service\ImageProcessorService
-    arguments: ['@entity_type.manager', '@file_system', '@logger.channel.toast_image_editor', '@config.factory']
+    arguments:
+    - '@entity_type.manager'
+    - '@file_system'
+    - '@logger.channel.toast_image_editor'
+    - '@config.factory'
+    - '@file_url_generator'
+    - '@request_stack'
 
   logger.channel.toast_image_editor:
     parent: logger.channel_base

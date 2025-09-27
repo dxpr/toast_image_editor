@@ -1,0 +1,5 @@
+toast_image_editor.settings:
+  title: 'Toast Image Editor'
+  description: 'Manage Toast Image Editor Settings.'
+  route_name: toast_image_editor.settings
+  parent: system.admin_config_media

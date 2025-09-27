@@ -3,7 +3,7 @@ toast_image_editor.media_save:
   defaults:
     _controller: '\Drupal\toast_image_editor\Controller\ImageEditorController::save'
   requirements:
-    _permission: 'edit media images'
+    _permission: 'use toast image editor'
     _entity_access: 'media.update'
     _method: 'POST'
     media: \d+

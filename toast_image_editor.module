@@ -7,32 +7,34 @@
 
 declare(strict_types=1);
 
-use Drupal\file\FileInterface;
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\media\MediaInterface;
+use Drupal\toast_image_editor\Form\SettingsForm;
 
 /**
- * Implements hook_form_FORM_ID_alter().
+ * Implements hook_form_FORM_ID_alter() for "form_media_form".
  */
-function toast_image_editor_form_media_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+function toast_image_editor_form_media_form_alter(array &$form, FormStateInterface $form_state): void {
   $formObject = $form_state->getFormObject();
   if (!method_exists($formObject, 'getEntity')) {
     return;
   }
+
   $media = $formObject->getEntity();
   if (!$media instanceof MediaInterface) {
     return;
   }
 
-  // Only add image editor for image media types with existing files.
-  if (!_toast_image_editor_can_edit_media($media)) {
+  // Only add an image editor for image media types with existing files.
+  /** @var \Drupal\toast_image_editor\Service\ImageProcessorService $imageProcessor */
+  $imageProcessor = \Drupal::service('toast_image_editor.image_processor');
+  if (!$imageProcessor->canEditMedia($media)) {
     return;
   }
 
   // Check permissions.
   $currentUser = \Drupal::currentUser();
-  if (!$currentUser->hasPermission('edit media images')) {
+  if (!$currentUser->hasPermission('use toast image editor')) {
     return;
   }
 
@@ -69,101 +71,34 @@ function toast_image_editor_form_media_form_alter(array &$form, FormStateInterfa
   $form['#attached']['drupalSettings']['toastImageEditor'] = [
     'mediaId' => $media->id(),
     'saveUrl' => \Drupal::service('url_generator')->generateFromRoute('toast_image_editor.media_save', ['media' => $media->id()]),
-    'enabledTools' => $config->get('enabled_tools') ?: _toast_image_editor_default_tools(),
-    'imageUrl' => _toast_image_editor_get_image_url($media),
+    'enabledTools' => $config->get('enabled_tools') ?: SettingsForm::defaultTools(),
+    'imageUrl' => $imageProcessor->getImageUrl($media),
   ];
 }
 
 /**
- * Helper function to check if media can be edited.
+ * Implements hook_ENTITY_TYPE_presave() for "media".
  */
-function _toast_image_editor_can_edit_media(MediaInterface $media): bool {
-  $imageProcessor = \Drupal::service('toast_image_editor.image_processor');
-  return $imageProcessor->canEditMedia($media);
-}
-
-/**
- * Helper function to get default enabled tools.
- */
-function _toast_image_editor_default_tools(): array {
-  return [
-    'crop' => TRUE,
-    'flip' => TRUE,
-    'rotation' => TRUE,
-    'draw' => TRUE,
-    'shape' => TRUE,
-    'icon' => TRUE,
-    'text' => TRUE,
-    'mask' => TRUE,
-    'filter' => TRUE,
-  ];
-}
-
-/**
- * Helper function to get image URL for the media entity.
- */
-function _toast_image_editor_get_image_url(MediaInterface $media): ?string {
-  $mediaType = \Drupal::entityTypeManager()->getStorage('media_type')->load($media->bundle());
-  if (!$mediaType) {
-    return NULL;
-  }
-  $sourceField = $media->getSource()->getSourceFieldDefinition($mediaType);
-  $fieldName = $sourceField->getName();
-
-  if (!$media->hasField($fieldName) || $media->get($fieldName)->isEmpty()) {
-    return NULL;
-  }
-
-  $file = $media->get($fieldName)->entity;
-  if (!$file instanceof FileInterface) {
-    return NULL;
-  }
-
-  // Generate relative URL first, then convert to absolute with current
-  // request base.
-  $fileUrl = \Drupal::service('file_url_generator')->generateString($file->getFileUri());
-
-  // Get current request to ensure we use the correct domain.
-  $request = \Drupal::request();
-  $host = $request->getHttpHost();
-  if ($host) {
-    $scheme = $request->getScheme();
-    $baseUrl = $scheme . '://' . $host;
-
-    // Convert relative URL to absolute.
-    if (strpos($fileUrl, '/') === 0) {
-      return $baseUrl . $fileUrl;
-    }
-  }
-
-  // Fallback to the service method.
-  return \Drupal::service('file_url_generator')->generateAbsoluteString($file->getFileUri());
-}
-
-/**
- * Implements hook_entity_presave().
- */
-function toast_image_editor_entity_presave(EntityInterface $entity): void {
+function toast_image_editor_media_presave(MediaInterface $entity): void {
   // Check if this is a media entity with image editor data.
-  if ($entity instanceof MediaInterface) {
-    $request = \Drupal::request();
-    $imageData = $request->request->get('toast_image_editor_data');
+  // @todo Make sure it's an image media type.
+  $request = \Drupal::request();
+  $imageData = $request->request->get('toast_image_editor_data');
 
-    if (!empty($imageData) && strpos($imageData, 'data:image/') === 0) {
-      /** @var \Drupal\toast_image_editor\Service\ImageProcessorService $imageProcessor */
-      $imageProcessor = \Drupal::service('toast_image_editor.image_processor');
+  if (!empty($imageData) && str_starts_with($imageData, 'data:image/')) {
+    /** @var \Drupal\toast_image_editor\Service\ImageProcessorService $imageProcessor */
+    $imageProcessor = \Drupal::service('toast_image_editor.image_processor');
 
-      try {
-        // Process the edited image data (without saving the media entity).
-        $imageProcessor->saveEditedImage($entity, $imageData);
-        \Drupal::logger('toast_image_editor')->info('Image updated for media @id', ['@id' => $entity->id()]);
-      }
-      catch (\Exception $e) {
-        \Drupal::logger('toast_image_editor')->error('Failed to save edited image for media @id: @message', [
-          '@id' => $entity->id(),
-          '@message' => $e->getMessage(),
-        ]);
-      }
+    try {
+      // Process the edited image data (without saving the media entity).
+      $imageProcessor->saveEditedImage($entity, $imageData);
+      \Drupal::logger('toast_image_editor')->info('Image updated for media @id', ['@id' => $entity->id()]);
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('toast_image_editor')->error('Failed to save edited image for media @id: @message', [
+        '@id' => $entity->id(),
+        '@message' => $e->getMessage(),
+      ]);
     }
   }
 }

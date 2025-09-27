@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\toast_image_editor\Form;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Form\ConfigFormBase;
@@ -16,12 +18,21 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class SettingsForm extends ConfigFormBase {
 
   /**
-   * Constructs a new SettingsForm object.
+   * The settings configuration key for the Toast Image Editor module.
+   *
+   * @var string
+   */
+  const SETTINGS = 'toast_image_editor.settings';
+
+  /**
+   * {@inheritdoc}
    */
   public function __construct(
+    ConfigFactoryInterface $config_factory,
+    protected TypedConfigManagerInterface $typedConfigManager,
     protected ModuleExtensionList $extensionListModule,
   ) {
-    // ConfigFormBase doesn't need constructor parameters.
+    parent::__construct($config_factory, $typedConfigManager);
   }
 
   /**
@@ -29,6 +40,8 @@ class SettingsForm extends ConfigFormBase {
    */
   public static function create(ContainerInterface $container): self {
     return new self(
+      $container->get('config.factory'),
+      $container->get('config.typed'),
       $container->get('extension.list.module'),
     );
   }
@@ -44,14 +57,14 @@ class SettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   protected function getEditableConfigNames(): array {
-    return ['toast_image_editor.settings'];
+    return [self::SETTINGS];
   }
 
   /**
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
-    $config = $this->config('toast_image_editor.settings');
+    $config = $this->config(self::SETTINGS);
 
     $form['tools'] = [
       '#type' => 'fieldset',
@@ -124,7 +137,7 @@ class SettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    // Get enabled tools from checkboxes array.
+    // Get enabled tools from the checkboxes array.
     $enabledTools = array_filter($form_state->getValue('enabled_tools', []));
 
     $this->config('toast_image_editor.settings')
@@ -221,6 +234,27 @@ class SettingsForm extends ConfigFormBase {
     ];
 
     return '<span class="tool-icon">' . ($fallbackIcons[$tool] ?? '●') . '</span>';
+  }
+
+  /**
+   * Retrieves the default set of tools with their enabled status.
+   *
+   * @return array
+   *   An associative array where each key represents a tool name and
+   *   its value indicates whether the tool is enabled (TRUE) or not (FALSE).
+   */
+  public static function defaultTools(): array {
+    return [
+      'crop' => TRUE,
+      'flip' => TRUE,
+      'rotation' => TRUE,
+      'draw' => TRUE,
+      'shape' => TRUE,
+      'icon' => TRUE,
+      'text' => TRUE,
+      'mask' => TRUE,
+      'filter' => TRUE,
+    ];
   }
 
 }

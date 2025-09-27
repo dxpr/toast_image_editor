@@ -8,9 +8,12 @@ use Drupal\Core\File\FileExists;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileSystemInterface;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\file\FileInterface;
 use Drupal\media\MediaInterface;
+use Drupal\media\MediaTypeInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Service for processing and saving edited images.
@@ -19,12 +22,27 @@ class ImageProcessorService {
 
   /**
    * Constructs the ImageProcessorService.
+   *
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
+   *   The entity type manager service.
+   * @param \Drupal\Core\File\FileSystemInterface $fileSystem
+   *   The file system service.
+   * @param \Drupal\Core\Logger\LoggerChannelInterface $logger
+   *   The logger channel service.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
+   *   The configuration factory service.
+   * @param \Drupal\Core\File\FileUrlGeneratorInterface $fileUrlGenerator
+   *   The file url generator service.
+   * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
+   *   The request stack service.
    */
   public function __construct(
     protected EntityTypeManagerInterface $entityTypeManager,
     protected FileSystemInterface $fileSystem,
     protected LoggerChannelInterface $logger,
     protected ConfigFactoryInterface $configFactory,
+    protected FileUrlGeneratorInterface $fileUrlGenerator,
+    protected RequestStack $requestStack,
   ) {}
 
   /**
@@ -41,10 +59,11 @@ class ImageProcessorService {
   public function saveEditedImage(MediaInterface $media, string $imageData): bool {
     try {
       $mediaType = $this->entityTypeManager->getStorage('media_type')->load($media->bundle());
-      if (!$mediaType) {
+      if (!$mediaType instanceof MediaTypeInterface) {
         $this->logger->error('Media type not found for media @id.', ['@id' => $media->id()]);
         return FALSE;
       }
+
       $sourceField = $media->getSource()->getSourceFieldDefinition($mediaType);
       $fieldName = $sourceField->getName();
 
@@ -87,7 +106,7 @@ class ImageProcessorService {
       }
 
       // Create a new revision.
-      $media->setNewRevision(TRUE);
+      $media->setNewRevision();
       $media->setRevisionLogMessage('Image edited with Toast Image Editor');
 
       // Save the new image data to the existing file.
@@ -127,6 +146,9 @@ class ImageProcessorService {
    *
    * @return bool
    *   TRUE if the media can be edited, FALSE otherwise.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function canEditMedia(MediaInterface $media): bool {
     // Check if it's an image media type.
@@ -136,9 +158,10 @@ class ImageProcessorService {
     }
 
     $mediaType = $this->entityTypeManager->getStorage('media_type')->load($media->bundle());
-    if (!$mediaType) {
+    if (!$mediaType instanceof MediaTypeInterface) {
       return FALSE;
     }
+
     $sourceField = $sourcePlugin->getSourceFieldDefinition($mediaType);
     $fieldName = $sourceField->getName();
 
@@ -151,9 +174,61 @@ class ImageProcessorService {
       return FALSE;
     }
 
-    // Check if file exists and is readable.
+    // Check if a file exists and is readable.
     $uri = $fileEntity->getFileUri();
     return $this->fileSystem->realpath($uri) && is_readable($this->fileSystem->realpath($uri));
+  }
+
+  /**
+   * Helper function to get image URL for the media entity.
+   *
+   * @param \Drupal\media\MediaInterface $media
+   *   The media entity for which to generate the image URL.
+   *
+   * @return string|null
+   *   The absolute URL of the image file if available, or NULL if the media
+   *   entity does not have a valid image file.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   */
+  public function getImageUrl(MediaInterface $media): ?string {
+    $mediaType = $this->entityTypeManager->getStorage('media_type')->load($media->bundle());
+    if (!$mediaType instanceof MediaTypeInterface) {
+      return NULL;
+    }
+
+    $sourceField = $media->getSource()->getSourceFieldDefinition($mediaType);
+    $fieldName = $sourceField->getName();
+
+    if (!$media->hasField($fieldName) || $media->get($fieldName)->isEmpty()) {
+      return NULL;
+    }
+
+    $file = $media->get($fieldName)->entity;
+    if (!$file instanceof FileInterface) {
+      return NULL;
+    }
+
+    // Generate relative URL first, then convert to absolute with the current
+    // request base.
+    $fileUrl = $this->fileUrlGenerator->generateString($file->getFileUri());
+
+    // Get the current request to ensure we use the correct domain.
+    $request = $this->requestStack->getCurrentRequest();
+    $host = $request->getHttpHost();
+    if ($host) {
+      $scheme = $request->getScheme();
+      $baseUrl = $scheme . '://' . $host;
+
+      // Convert relative URL to absolute.
+      if (str_starts_with($fileUrl, '/')) {
+        return $baseUrl . $fileUrl;
+      }
+    }
+
+    // Fallback to the service method.
+    return $this->fileUrlGenerator->generateAbsoluteString($file->getFileUri());
   }
 
   /**
@@ -167,16 +242,19 @@ class ImageProcessorService {
    */
   private function convertToBytes(string $memoryLimit): int {
     $memoryLimit = trim($memoryLimit);
-    $last = strtolower($memoryLimit[strlen($memoryLimit) - 1]);
+    $metric = strtolower($memoryLimit[strlen($memoryLimit) - 1]);
     $value = (int) $memoryLimit;
 
-    switch ($last) {
-      case 'g':
-        $value *= 1024;
-      case 'm':
-        $value *= 1024;
-      case 'k':
-        $value *= 1024;
+    if ($metric === 'k') {
+      $value *= 1024;
+    }
+
+    if ($metric === 'm') {
+      $value *= (1024 * 1024);
+    }
+
+    if ($metric === 'g') {
+      $value *= (1024 * 1024 * 1024);
     }
 
     return $value;
