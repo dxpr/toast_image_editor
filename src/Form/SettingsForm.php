@@ -121,7 +121,7 @@ class SettingsForm extends ConfigFormBase {
     $form['ui_settings']['theme'] = [
       '#type' => 'select',
       '#title' => $this->t('Editor Theme'),
-      '#description' => $this->t('Choose the theme for the image editor.'),
+      '#description' => $this->t('Choose between white and black theme for the image editor.'),
       '#options' => [
         'white' => $this->t('White Theme'),
         'black' => $this->t('Black Theme'),

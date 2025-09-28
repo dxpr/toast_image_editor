@@ -75,6 +75,7 @@
             path: originalImageUrl,
             name: 'EditableImage'
           },
+          theme: getToastUITheme(config),
           uiSize: {
             width: config.width || "100%",
             height: config.height || "600px",
@@ -115,33 +116,56 @@
   }
 
   /**
-   * Get the editor theme configuration.
+   * Get the Toast UI Image Editor theme configuration.
    */
-  function getEditorTheme(config) {
+  function getToastUITheme(config) {
     const theme = config.theme || 'white';
 
-    return {
-      'common.bi.image': '',
-      'common.bisize.width': '251px',
-      'common.bisize.height': '21px',
-      'common.backgroundImage': 'none',
-      'common.backgroundColor': theme === 'white' ? '#ffffff' : '#1e1e1e',
-      'common.border': theme === 'white' ? '1px solid #c1c1c1' : '1px solid #444444',
-      'header.backgroundImage': 'none',
-      'header.backgroundColor': theme === 'white' ? 'transparent' : '#2d2d2d',
-      'loadButton.backgroundColor': theme === 'white' ? '#fff' : '#333',
-      'downloadButton.backgroundColor': theme === 'white' ? '#fdba3b' : '#ff6b35',
-      'downloadButton.border': theme === 'white' ? '1px solid #fdba3b' : '1px solid #ff6b35',
-      'downloadButton.color': theme === 'white' ? '#fff' : '#fff',
-      'menu.normalIcon.color': theme === 'white' ? '#8a8a8a' : '#cccccc',
-      'menu.activeIcon.color': theme === 'white' ? '#555555' : '#ffffff',
-      'menu.disabledIcon.color': theme === 'white' ? '#434343' : '#666666',
-      'menu.hoverIcon.color': theme === 'white' ? '#e9e9e9' : '#444444',
-      'submenu.backgroundColor': theme === 'white' ? '#1e1e1e' : '#ffffff',
-      'submenu.partition.color': theme === 'white' ? '#858585' : '#3c3c3c',
-      'submenu.normalIcon.color': theme === 'white' ? '#8a8a8a' : '#cccccc',
-      'submenu.activeIcon.color': theme === 'white' ? '#e9e9e9' : '#333333'
-    };
+    if (theme === 'black') {
+      // Black theme configuration for Toast UI Image Editor
+      return {
+        'common.bi.image': '',
+        'common.backgroundColor': '#1e1e1e',
+        'common.border': '1px solid #444444',
+        'header.backgroundColor': '#2d2d2d',
+        'loadButton.backgroundColor': '#333',
+        'loadButton.border': '1px solid #444',
+        'loadButton.color': '#fff',
+        'downloadButton.backgroundColor': '#ff6b35',
+        'downloadButton.border': '1px solid #ff6b35',
+        'downloadButton.color': '#fff',
+        'menu.normalIcon.color': '#cccccc',
+        'menu.activeIcon.color': '#ffffff',
+        'menu.disabledIcon.color': '#666666',
+        'menu.hoverIcon.color': '#444444',
+        'submenu.backgroundColor': '#ffffff',
+        'submenu.partition.color': '#3c3c3c',
+        'submenu.normalIcon.color': '#cccccc',
+        'submenu.activeIcon.color': '#333333'
+      };
+    } else {
+      // White theme configuration for Toast UI Image Editor
+      return {
+        'common.bi.image': '',
+        'common.backgroundColor': '#ffffff',
+        'common.border': '1px solid #c1c1c1',
+        'header.backgroundColor': 'transparent',
+        'loadButton.backgroundColor': '#fff',
+        'loadButton.border': '1px solid #c1c1c1',
+        'loadButton.color': '#333',
+        'downloadButton.backgroundColor': '#fdba3b',
+        'downloadButton.border': '1px solid #fdba3b',
+        'downloadButton.color': '#fff',
+        'menu.normalIcon.color': '#8a8a8a',
+        'menu.activeIcon.color': '#555555',
+        'menu.disabledIcon.color': '#434343',
+        'menu.hoverIcon.color': '#e9e9e9',
+        'submenu.backgroundColor': '#1e1e1e',
+        'submenu.partition.color': '#858585',
+        'submenu.normalIcon.color': '#8a8a8a',
+        'submenu.activeIcon.color': '#e9e9e9'
+      };
+    }
   }
 
   /**
