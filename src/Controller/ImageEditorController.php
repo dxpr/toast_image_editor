@@ -43,22 +43,36 @@ class ImageEditorController extends ControllerBase {
    *
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    *   JSON response indicating success or failure.
+   *
+   * @throws \Drupal\Core\Entity\EntityMalformedException
    */
   public function save(Request $request, MediaInterface $media): JsonResponse {
     // Verify permissions.
-    if (!$this->currentUser()->hasPermission('edit media images') || !$media->access('update')) {
-      return new JsonResponse(['success' => FALSE, 'message' => $this->t('Access denied')], 403);
+    if (
+      !$this->currentUser()->hasPermission('use toast image editor') ||
+      !$media->access('update')
+    ) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => $this->t('Access denied'),
+      ], 403);
     }
 
     // Verify media can be edited.
     if (!$this->imageProcessor->canEditMedia($media)) {
-      return new JsonResponse(['success' => FALSE, 'message' => $this->t('This media cannot be edited')], 400);
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => $this->t('This media cannot be edited'),
+      ], 400);
     }
 
     // Get image data from request.
     $imageData = $request->request->get('imageData');
     if (empty($imageData)) {
-      return new JsonResponse(['success' => FALSE, 'message' => $this->t('No image data provided')], 400);
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => $this->t('No image data provided'),
+      ], 400);
     }
 
     // Process and save the image.

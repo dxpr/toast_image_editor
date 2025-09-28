@@ -1,0 +1,28 @@
+toast_image_editor.settings:
+  type: config_object
+  label: 'Toast Image Editor settings'
+  mapping:
+    enabled_tools:
+      type: sequence
+      label: 'Enabled tools'
+      description: 'List of tools that are enabled in the Toast Image Editor.'
+      sequence:
+        type: string
+        label: 'Tool name'
+        description: 'The name of an enabled tool.'
+    editor_width:
+      type: integer
+      label: 'Editor width'
+      description: 'Width of the image editor in pixels.'
+    editor_height:
+      type: integer
+      label: 'Editor height'
+      description: 'Height of the image editor in pixels.'
+    theme:
+      type: string
+      label: 'Editor theme'
+      description: 'The theme for the image editor interface.'
+    max_file_size:
+      type: integer
+      label: 'Maximum file size'
+      description: 'Maximum file size allowed for image uploads in MB.'

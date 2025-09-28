@@ -11,6 +11,10 @@
   background-color: #fafafa;
 }
 
+.tui-image-editor-container ul.tui-image-editor-help-menu {
+  display: flex;
+}
+
 #toast-image-editor {
   border: 1px solid #ccc;
   border-radius: 4px;
