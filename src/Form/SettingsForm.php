@@ -29,7 +29,7 @@ class SettingsForm extends ConfigFormBase {
    */
   public function __construct(
     ConfigFactoryInterface $config_factory,
-    protected TypedConfigManagerInterface $typedConfigManager,
+    TypedConfigManagerInterface $typedConfigManager,
     protected ModuleExtensionList $extensionListModule,
   ) {
     parent::__construct($config_factory, $typedConfigManager);
