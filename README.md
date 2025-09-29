@@ -1,45 +1,122 @@
-# Toast Image Editor for Drupal
+# Toast Image Editor
 
-This module integrates Toast UI Image Editor with Drupal, providing a powerful image editing interface for media entities.
+Professional image editing capabilities for Drupal media with revision support and offline compatibility.
 
 ## Features
 
-- Full-featured image editor using Toast UI Image Editor
-- White and black theme support
-- Configurable editor dimensions
-- Tool selection (crop, flip, rotate, draw, text, etc.)
-- Offline-compatible (no CDN dependencies)
+- **Full Image Editor**: Crop, rotate, flip, draw, add text and shapes
+- **Revision Support**: Creates new media revisions preserving original images
+- **Theme Selection**: White and black theme options for different workflows
+- **Configurable Tools**: Enable/disable specific editing tools per requirements
+- **Offline-ready**: All assets served locally, no CDN dependencies
+- **Responsive Interface**: Configurable editor dimensions
+- **Filters & Effects**: Apply filters, adjust brightness, contrast, and more
+- **Undo/Redo Support**: Full editing history with keyboard shortcuts
+
+## Requirements
+
+- Drupal 10.3+ or 11.0+
+- Media module (core)
+- File module (core)
+- PHP 8.1+
 
 ## Installation
 
-1. Install the module in your Drupal site
-2. Run the build process to copy assets locally:
-   ```bash
-   cd web/modules/custom/toast_image_editor
-   npm install
-   ```
-3. Enable the module
-4. Configure settings at `/admin/config/media/toast-image-editor`
+```bash
+composer require drupal/toast_image_editor
+drush en toast_image_editor
+```
 
-## Build Process
+## Configuration
 
-This module uses a local build process to avoid CDN dependencies for firewall/offline environments:
+1. Configure editor settings at `/admin/config/media/toast-image-editor`
+2. Set permissions at `/admin/people/permissions#module-toast_image_editor`
+3. Select which tools to enable (crop, draw, text, filters, etc.)
+4. Choose theme (white or black)
+5. Configure editor dimensions
 
-- `npm install` - Downloads dependencies and automatically runs the build
-- `npm run build` - Copies assets from node_modules to local assets/ directory
+## Usage
 
-## Dependencies
+### For Content Editors
+1. Navigate to Media library (`/admin/content/media`)
+2. Select an image media item
+3. Click "Edit with Toast Editor" button
+4. Use the editing tools to modify the image
+5. Click "Save" to create a new revision
 
+### For Site Builders
+1. The module automatically adds an edit action to image media types
+2. Configure which roles can edit images via permissions
+3. Customize editor toolbar through configuration
+
+
+## Editing Tools
+
+### Drawing Tools
+- Free drawing with customizable brush size and color
+- Straight line drawing
+- Text overlay with font customization
+- Shapes (rectangle, circle, triangle)
+
+### Image Manipulation
+- Crop with aspect ratio options
+- Rotate (90°, -90°, custom angles)
+- Flip horizontal/vertical
+- Resize
+
+### Filters & Adjustments
+- Grayscale, sepia, blur, sharpen
+- Brightness and contrast adjustment
+- Color filters
+- Custom filter combinations
+
+## Permission Configuration
+
+The module provides granular permissions:
+- Access Toast Image Editor
+- Edit images with Toast Image Editor
+- Configure Toast Image Editor settings
+
+## Technical Details
+
+### Asset Management
+- All JavaScript and CSS assets served locally
+- No external CDN dependencies
+- Automatic asset copying during installation
+- Versioned assets for cache management
+
+### Revision Handling
+- Creates new media revisions on save
+- Preserves original image files
+- Maintains revision history
+- Rollback capability through Media revisions
+
+### JavaScript Libraries
 - tui-image-editor: ^3.15.3
-- fabric: ^4.4.0
-- file-saver: ^1.3.8
+- fabric: ^4.4.0 (canvas manipulation)
+- file-saver: ^1.3.8 (download functionality)
 - tui-code-snippet: ^1.5.2
 - tui-color-picker: ^2.2.7
 
-## Dependabot
 
-Dependabot is configured to automatically create PRs for tui-image-editor updates only (not subdependencies).
+## Troubleshooting
 
-## Development
+### Common Issues
 
-The `scripts/build-assets.js` script handles copying necessary files from node_modules to the assets/ directory. All cloud URLs have been replaced with local asset references.
+**Editor not loading:**
+- Ensure `npm install` was run successfully
+- Check browser console for JavaScript errors
+- Verify assets exist in `assets/` directory
+- Clear Drupal and browser caches
+
+**Permission denied errors:**
+- Verify user has "Edit images with Toast Image Editor" permission
+- Check media entity access permissions
+- Ensure file system permissions allow media creation
+
+
+## Similar Projects
+
+- [Image Widget Crop](https://www.drupal.org/project/image_widget_crop) - Crop-only functionality
+- [Focal Point](https://www.drupal.org/project/focal_point) - Smart image cropping
+- [ImageMagick](https://www.drupal.org/project/imagemagick) - Server-side image processing
