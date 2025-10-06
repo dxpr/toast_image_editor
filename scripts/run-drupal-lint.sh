@@ -8,6 +8,7 @@ phpcs --standard=PHPCompatibility \
   --runtime-set testVersion 8.3- \
   --extensions=php,module,inc,install,test,profile,theme,info,txt,md,yml \
   --ignore=node_modules,toast_image_editor/vendor,.github,vendor \
+  --exclude=PHPCompatibility.FunctionNameRestrictions.ReservedFunctionNames \
   -v \
   .
 status=$?

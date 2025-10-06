@@ -1,6 +1,7 @@
 # Toast Image Editor
 
-Professional image editing capabilities for Drupal media with revision support and offline compatibility.
+Professional image editing capabilities for Drupal media with revision
+support and offline compatibility.
 
 ## Features
 
@@ -98,6 +99,21 @@ The module provides granular permissions:
 - tui-code-snippet: ^1.5.2
 - tui-color-picker: ^2.2.7
 
+
+## Development
+
+Run code quality checks using Docker:
+
+```bash
+# Check code standards
+docker compose run --rm drupal-lint
+
+# Auto-fix code standards
+docker compose run --rm drupal-lint-auto-fix
+
+# Check for deprecations
+docker compose run --rm drupal-check
+```
 
 ## Troubleshooting
 

@@ -22,7 +22,3 @@ toast_image_editor.settings:
       type: string
       label: 'Editor theme'
       description: 'The theme for the image editor interface (white or black).'
-    max_file_size:
-      type: integer
-      label: 'Maximum file size'
-      description: 'Maximum file size allowed for image uploads in MB.'

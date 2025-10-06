@@ -19,4 +19,9 @@
   </rule>
 
   <rule ref="DrupalPractice"/>
+
+  <!-- Exclude false positive PHPCompatibility warning about __construct magic method -->
+  <rule ref="PHPCompatibility">
+    <exclude name="PHPCompatibility.FunctionNameRestrictions.ReservedFunctionNames.MethodDoubleUnderscore"/>
+  </rule>
 </ruleset>

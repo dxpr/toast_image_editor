@@ -12,6 +12,9 @@
         "Builder",
         "Low-code"
     ],
+    "require": {
+        "php": ">=8.1"
+    },
     "support": {
         "documentation": "https:/.dxpr.com/hc",
         "issues": "https://dxpr.com/hc/tickets"

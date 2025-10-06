@@ -1,13 +1,62 @@
 /**
  * @file
  * Toast Image Editor integration for Drupal - Vanilla JS version.
+ *
+ * Save Workflow:
+ * --------------
+ * 1. Editor initializes when media edit form loads
+ * 2. User makes edits (tracked via undoStackChanged event)
+ * 3. When user clicks form "Save" button:
+ *    a. JavaScript captures current editor state as base64 image data
+ *    b. Data is stored in hidden form field 'toast_image_editor_data'
+ *    c. Visual feedback shown (buttons disabled, status announced)
+ *    d. Form submits normally
+ * 4. Server-side processing occurs via MediaPresaveService
+ * 5. Image file is updated and media revision created
+ * 6. Normal Drupal form save completes
+ *
+ * All user-facing strings use Drupal.t() for translation support.
+ * Status changes are announced to screen readers via aria-live regions.
  */
 
 (function (Drupal, drupalSettings, once) {
   'use strict';
 
-  let imageEditor = null;
-  let originalImageUrl = null;
+  // Namespace for Toast Image Editor to avoid global pollution.
+  Drupal.toastImageEditor = Drupal.toastImageEditor || {};
+  Drupal.toastImageEditor.instance = null;
+  Drupal.toastImageEditor.originalImageUrl = null;
+  Drupal.toastImageEditor.hasChanges = false;
+
+  /**
+   * Helper function to announce status to screen readers.
+   */
+  function announceStatus(message) {
+    const statusElement = document.getElementById('toast-image-editor-status');
+    if (statusElement) {
+      statusElement.textContent = message;
+      // Clear after announcement
+      setTimeout(() => {
+        statusElement.textContent = '';
+      }, 3000);
+    }
+  }
+
+  /**
+   * Helper function to show/hide loading indicator.
+   */
+  function setLoadingState(isLoading) {
+    const loadingElement = document.getElementById('toast-image-editor-loading');
+    if (loadingElement) {
+      if (isLoading) {
+        loadingElement.classList.remove('hidden');
+        loadingElement.setAttribute('aria-busy', 'true');
+      } else {
+        loadingElement.classList.add('hidden');
+        loadingElement.setAttribute('aria-busy', 'false');
+      }
+    }
+  }
 
   /**
    * Initialize the Toast Image Editor.
@@ -15,7 +64,7 @@
   Drupal.behaviors.toastImageEditor = {
     attach: function (context, settings) {
       // Only run if we have the settings and haven't already initialized
-      if (!settings.toastImageEditor || imageEditor) {
+      if (!settings.toastImageEditor || Drupal.toastImageEditor.instance) {
         return;
       }
 
@@ -27,30 +76,22 @@
       // Mark as initialized to prevent double initialization
       editorContainer.dataset.initialized = 'true';
 
-      originalImageUrl = settings.toastImageEditor.imageUrl;
+      Drupal.toastImageEditor.originalImageUrl = settings.toastImageEditor.imageUrl;
 
-      if (!originalImageUrl) {
-        console.warn('No image URL provided for Toast Image Editor');
+      if (!Drupal.toastImageEditor.originalImageUrl) {
+        announceStatus(Drupal.t('Cannot load image. Please refresh the page and try again.'));
+        setLoadingState(false);
         return;
       }
 
-      console.log('Initializing Toast Image Editor with image:', originalImageUrl);
+      setLoadingState(true);
       initializeEditor(settings.toastImageEditor);
 
-      // Attach form submit handler after editor is initialized
-      setTimeout(() => {
+      // Wait for editor to be fully initialized before attaching form handler
+      waitForEditorReady().then(() => {
         attachFormSubmitHandler(settings.toastImageEditor);
-      }, 1000);
-
-      // Handle image editor changes - mark form as changed
-      imageEditor.on('undoStackChanged', function(length) {
-        if (length > 0) {
-          // Mark the main Drupal form as changed
-          const mainForm = document.querySelector('form[data-drupal-selector*="media"]');
-          if (mainForm) {
-            mainForm.classList.add('has-unsaved-changes');
-          }
-        }
+        setLoadingState(false);
+        announceStatus(Drupal.t('Editor ready'));
       });
     }
   };
@@ -61,18 +102,17 @@
   function initializeEditor(config) {
     const editorContainer = document.getElementById('toast-image-editor');
     if (!editorContainer) {
-      console.error('Toast Image Editor container not found');
+      announceStatus(Drupal.t('Cannot load editor. Please refresh the page.'));
+      setLoadingState(false);
       return;
     }
 
     try {
-      console.log('Creating Toast Image Editor...');
-
       // Initialize the editor with minimal configuration
-      imageEditor = new tui.ImageEditor('#toast-image-editor', {
+      Drupal.toastImageEditor.instance = new tui.ImageEditor('#toast-image-editor', {
         includeUI: {
           loadImage: {
-            path: originalImageUrl,
+            path: Drupal.toastImageEditor.originalImageUrl,
             name: 'EditableImage'
           },
           theme: getToastUITheme(config),
@@ -87,30 +127,25 @@
         usageStatistics: false
       });
 
-      // Hide disabled tools after initialization
-      setTimeout(() => {
-        hideDisabledTools(config.enabledTools);
-      }, 500);
-
       // Add event listeners for tracking changes
-      imageEditor.on('undoStackChanged', function(length) {
-        // Store the current state so it can be saved with the form
+      Drupal.toastImageEditor.instance.on('undoStackChanged', function(length) {
         if (length > 0) {
-          window.toastImageEditorHasChanges = true;
+          Drupal.toastImageEditor.hasChanges = true;
+          // Mark the main Drupal form as changed
+          const mainForm = document.querySelector('form[data-drupal-selector*="media"]');
+          if (mainForm) {
+            mainForm.classList.add('has-unsaved-changes');
+          }
         }
       });
 
-      // Make imageEditor globally accessible for debugging
-      window.imageEditor = imageEditor;
-
-      console.log('Toast Image Editor initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize Toast Image Editor:', error);
-      console.error('Error details:', error.message);
-      console.error('Stack:', error.stack);
+      const errorMessage = Drupal.t('Cannot start editor. Please refresh the page or contact your site administrator if this problem continues.');
+      announceStatus(errorMessage);
+      setLoadingState(false);
 
       if (editorContainer) {
-        editorContainer.innerHTML = '<div class="error">Failed to initialize image editor: ' + error.message + '</div>';
+        editorContainer.innerHTML = '<div class="error" role="alert">' + errorMessage + '</div>';
       }
     }
   }
@@ -192,6 +227,61 @@
   }
 
   /**
+   * Wait for editor to be fully ready using MutationObserver.
+   */
+  function waitForEditorReady() {
+    return new Promise((resolve) => {
+      if (!Drupal.toastImageEditor.instance) {
+        resolve();
+        return;
+      }
+
+      // Check if the editor's UI is already rendered
+      const checkReady = () => {
+        const menuBar = document.querySelector('.tui-image-editor-menu');
+        if (menuBar) {
+          // Hide disabled tools once UI is ready
+          const config = drupalSettings.toastImageEditor;
+          if (config && config.enabledTools) {
+            hideDisabledTools(config.enabledTools);
+          }
+          resolve();
+          return true;
+        }
+        return false;
+      };
+
+      // Try immediately first
+      if (checkReady()) {
+        return;
+      }
+
+      // If not ready, observe for changes
+      const observer = new MutationObserver(() => {
+        if (checkReady()) {
+          observer.disconnect();
+        }
+      });
+
+      const editorContainer = document.getElementById('toast-image-editor');
+      if (editorContainer) {
+        observer.observe(editorContainer, {
+          childList: true,
+          subtree: true
+        });
+
+        // Fallback timeout after 5 seconds
+        setTimeout(() => {
+          observer.disconnect();
+          resolve();
+        }, 5000);
+      } else {
+        resolve();
+      }
+    });
+  }
+
+  /**
    * Hide disabled tools from the toolbar.
    */
   function hideDisabledTools(enabledTools) {
@@ -212,7 +302,6 @@
         const toolButton = document.querySelector(`.tie-btn-${tool}`);
         if (toolButton) {
           toolButton.style.display = 'none';
-          console.log(`Hiding tool: ${tool}`);
         }
       }
     });
@@ -238,13 +327,26 @@
 
     // Listen for form submission
     mainForm.addEventListener('submit', function(e) {
-      if (window.toastImageEditorHasChanges && imageEditor) {
+      if (Drupal.toastImageEditor.hasChanges && Drupal.toastImageEditor.instance) {
         try {
+          // Show saving indicator
+          announceStatus(Drupal.t('Saving your changes...'));
+
           // Get the edited image data and store it in the hidden field
-          const imageData = imageEditor.toDataURL();
+          const imageData = Drupal.toastImageEditor.instance.toDataURL();
           hiddenField.value = imageData;
+
         } catch (error) {
-          console.error('Error getting image data:', error);
+          e.preventDefault();
+          const errorMessage = Drupal.t('Cannot save your changes. Please try again or contact your site administrator.');
+          announceStatus(errorMessage);
+
+          // Show error to user
+          if (typeof Drupal.Message !== 'undefined') {
+            new Drupal.Message().add(errorMessage, {type: 'error'});
+          } else {
+            alert(errorMessage);
+          }
         }
       }
     });

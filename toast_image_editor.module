@@ -8,100 +8,94 @@
 declare(strict_types=1);
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Url;
 use Drupal\media\MediaInterface;
-use Drupal\toast_image_editor\Form\SettingsForm;
+
+/**
+ * Implements hook_help().
+ */
+function toast_image_editor_help(string $route_name, RouteMatchInterface $route_match): string {
+  switch ($route_name) {
+    case 'help.page.toast_image_editor':
+      $output = '<h2>' . t('About') . '</h2>';
+      $output .= '<p>' . t('Edit images directly in Drupal. This module lets you crop, rotate, add text, apply filters, and more—right from the media edit screen. All changes create new revisions, so your original images stay safe.') . '</p>';
+
+      $output .= '<h2>' . t('What you can do') . '</h2>';
+      $output .= '<ul>';
+      $output .= '<li>' . t('Crop, rotate, flip, and resize images') . '</li>';
+      $output .= '<li>' . t('Draw, add shapes, and insert text') . '</li>';
+      $output .= '<li>' . t('Apply filters and color effects') . '</li>';
+      $output .= '<li>' . t('Track changes with automatic media revisions') . '</li>';
+      $output .= '<li>' . t('Work offline—no external dependencies') . '</li>';
+      $output .= '</ul>';
+
+      $output .= '<h2>' . t('Quick start') . '</h2>';
+      $output .= '<ol>';
+      $output .= '<li>' . t('Go to <a href=":media">Content > Media</a>', [
+        ':media' => Url::fromRoute('entity.media.collection')->toString(),
+      ]) . '</li>';
+      $output .= '<li>' . t('Click Edit on any image') . '</li>';
+      $output .= '<li>' . t('Find the Image Editor section') . '</li>';
+      $output .= '<li>' . t('Make your changes') . '</li>';
+      $output .= '<li>' . t('Click Save to create a new revision') . '</li>';
+      $output .= '</ol>';
+
+      $output .= '<h2>' . t('Settings') . '</h2>';
+      $output .= '<p>' . t('Visit <a href=":config">the settings page</a> to:', [
+        ':config' => Url::fromRoute('toast_image_editor.settings')->toString(),
+      ]) . '</p>';
+      $output .= '<ul>';
+      $output .= '<li>' . t('Show or hide specific tools') . '</li>';
+      $output .= '<li>' . t('Switch between light and dark themes') . '</li>';
+      $output .= '<li>' . t('Set editor size') . '</li>';
+      $output .= '<li>' . t('Control maximum file size') . '</li>';
+      $output .= '</ul>';
+
+      $output .= '<h2>' . t('Permissions') . '</h2>';
+      $output .= '<p>' . t('Control who can edit images and change settings at <a href=":permissions">People > Permissions</a>:', [
+        ':permissions' => Url::fromRoute('user.admin_permissions', [], ['fragment' => 'module-toast_image_editor'])->toString(),
+      ]) . '</p>';
+      $output .= '<ul>';
+      $output .= '<li>' . t('<strong>Use toast image editor</strong> — Edit images') . '</li>';
+      $output .= '<li>' . t('<strong>Administer Toast Image Editor</strong> — Change module settings') . '</li>';
+      $output .= '</ul>';
+
+      return $output;
+
+    case 'toast_image_editor.settings':
+      return '<p>' . t('Choose which tools appear in the editor and customize how it looks.') . '</p>';
+  }
+
+  return '';
+}
 
 /**
  * Implements hook_form_FORM_ID_alter() for "form_media_form".
  */
 function toast_image_editor_form_media_form_alter(array &$form, FormStateInterface $form_state): void {
-  $formObject = $form_state->getFormObject();
-  if (!method_exists($formObject, 'getEntity')) {
-    return;
+  try {
+    /** @var \Drupal\toast_image_editor\Service\MediaFormAlterService $formAlterService */
+    $formAlterService = \Drupal::service('toast_image_editor.media_form_alter');
+    $formAlterService->alterMediaForm($form, $form_state);
   }
-
-  $media = $formObject->getEntity();
-  if (!$media instanceof MediaInterface) {
-    return;
+  catch (\Exception $e) {
+    \Drupal::logger('toast_image_editor')->error('Form alter failed: @message', ['@message' => $e->getMessage()]);
+    \Drupal::messenger()->addError(t('Toast Image Editor form error: @message', ['@message' => $e->getMessage()]));
   }
-
-  // Only add an image editor for image media types with existing files.
-  /** @var \Drupal\toast_image_editor\Service\ImageProcessorService $imageProcessor */
-  $imageProcessor = \Drupal::service('toast_image_editor.image_processor');
-  if (!$imageProcessor->canEditMedia($media)) {
-    return;
-  }
-
-  // Check permissions.
-  $currentUser = \Drupal::currentUser();
-  if (!$currentUser->hasPermission('use toast image editor')) {
-    return;
-  }
-
-  // Add the image editor section.
-  $form['toast_image_editor'] = [
-    '#type' => 'fieldset',
-    '#title' => t('Image Editor'),
-    '#weight' => 10,
-  ];
-
-  $form['toast_image_editor']['editor_container'] = [
-    '#type' => 'container',
-    '#attributes' => [
-      'id' => 'toast-image-editor-container',
-      'data-media-id' => $media->id(),
-    ],
-  ];
-
-  $form['toast_image_editor']['editor_placeholder'] = [
-    '#markup' => '<div id="toast-image-editor"></div>',
-  ];
-
-  // Add a hidden field to store image editor data.
-  $form['toast_image_editor_data'] = [
-    '#type' => 'hidden',
-    '#value' => '',
-  ];
-
-  // Attach the JavaScript library.
-  $form['#attached']['library'][] = 'toast_image_editor/toast-image-editor-integration';
-
-  // Pass configuration to JavaScript.
-  $config = \Drupal::config('toast_image_editor.settings');
-  $form['#attached']['drupalSettings']['toastImageEditor'] = [
-    'width' => $config->get('editor_width') ? $config->get('editor_width') . 'px' : '100%',
-    'height' => $config->get('editor_height') ? $config->get('editor_height') . 'px' : '600px',
-    'theme' => $config->get('theme') ?: 'white',
-    'mediaId' => $media->id(),
-    'saveUrl' => \Drupal::service('url_generator')->generateFromRoute('toast_image_editor.media_save', ['media' => $media->id()]),
-    'enabledTools' => $config->get('enabled_tools') ?: SettingsForm::defaultTools(),
-    'imageUrl' => $imageProcessor->getImageUrl($media),
-  ];
 }
 
 /**
  * Implements hook_ENTITY_TYPE_presave() for "media".
  */
 function toast_image_editor_media_presave(MediaInterface $entity): void {
-  // Check if this is a media entity with image editor data.
-  // @todo Make sure it's an image media type.
-  $request = \Drupal::request();
-  $imageData = $request->request->get('toast_image_editor_data');
-
-  if (!empty($imageData) && str_starts_with($imageData, 'data:image/')) {
-    /** @var \Drupal\toast_image_editor\Service\ImageProcessorService $imageProcessor */
-    $imageProcessor = \Drupal::service('toast_image_editor.image_processor');
-
-    try {
-      // Process the edited image data (without saving the media entity).
-      $imageProcessor->saveEditedImage($entity, $imageData);
-      \Drupal::logger('toast_image_editor')->info('Image updated for media @id', ['@id' => $entity->id()]);
-    }
-    catch (\Exception $e) {
-      \Drupal::logger('toast_image_editor')->error('Failed to save edited image for media @id: @message', [
-        '@id' => $entity->id(),
-        '@message' => $e->getMessage(),
-      ]);
-    }
+  try {
+    /** @var \Drupal\toast_image_editor\Service\MediaPresaveService $presaveService */
+    $presaveService = \Drupal::service('toast_image_editor.media_presave');
+    $presaveService->processMediaPresave($entity);
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('toast_image_editor')->error('Failed to get presave service: @message', ['@message' => $e->getMessage()]);
+    \Drupal::messenger()->addError(t('Toast Image Editor error: @message', ['@message' => $e->getMessage()]));
   }
 }

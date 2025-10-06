@@ -108,7 +108,8 @@ details[open] summary {
 }
 
 /* Loading animation */
-.loading::after {
+.loading::after,
+.toast-image-editor-loading::after {
   content: '';
   display: inline-block;
   width: 20px;
@@ -118,6 +119,19 @@ details[open] summary {
   border-radius: 50%;
   border-top-color: #333;
   animation: spin 1s linear infinite;
+}
+
+.toast-image-editor-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.toast-image-editor-loading.hidden {
+  display: none;
 }
 
 @keyframes spin {
