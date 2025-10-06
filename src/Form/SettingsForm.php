@@ -31,6 +31,7 @@ class SettingsForm extends ConfigFormBase {
     ConfigFactoryInterface $config_factory,
     TypedConfigManagerInterface $typedConfigManager,
     protected ModuleExtensionList $extensionListModule,
+    protected string $appRoot,
   ) {
     parent::__construct($config_factory, $typedConfigManager);
   }
@@ -43,6 +44,7 @@ class SettingsForm extends ConfigFormBase {
       $container->get('config.factory'),
       $container->get('config.typed'),
       $container->get('extension.list.module'),
+      $container->getParameter('app.root'),
     );
   }
 
@@ -68,8 +70,8 @@ class SettingsForm extends ConfigFormBase {
 
     $form['tools'] = [
       '#type' => 'fieldset',
-      '#title' => $this->t('Available Tools'),
-      '#description' => $this->t('Select which tools should be available in the Toast Image Editor.'),
+      '#title' => $this->t('Editing tools'),
+      '#description' => $this->t('Choose which tools appear in the editor toolbar.'),
     ];
 
     $tools = $this->getAvailableTools();
@@ -78,7 +80,7 @@ class SettingsForm extends ConfigFormBase {
     // Create a container for the checkboxes grid.
     $form['tools']['enabled_tools'] = [
       '#type' => 'checkboxes',
-      '#title' => $this->t('Available Tools'),
+      '#title' => $this->t('Select tools'),
       '#title_display' => 'invisible',
       '#options' => [],
       '#default_value' => $enabledTools,
@@ -87,21 +89,34 @@ class SettingsForm extends ConfigFormBase {
       ],
     ];
 
-    // Build options with icons.
+    // Build options with icons and add individual descriptions.
     foreach ($tools as $key => $tool) {
       $icon = $this->getToolIcon($key);
       $form['tools']['enabled_tools']['#options'][$key] = Markup::create($icon . ' ' . $tool['title']);
+
+      // Add description for each checkbox for better accessibility.
+      $form['tools']['enabled_tools'][$key]['#description'] = $tool['description'];
     }
+
+    // Add comprehensive help text.
+    $form['tools']['help'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'div',
+      '#value' => $this->t('Uncheck tools to hide them from the toolbar. Keep at least one tool selected.'),
+      '#attributes' => [
+        'class' => ['description'],
+      ],
+    ];
 
     $form['ui_settings'] = [
       '#type' => 'fieldset',
-      '#title' => $this->t('UI Settings'),
+      '#title' => $this->t('Display settings'),
     ];
 
     $form['ui_settings']['editor_width'] = [
       '#type' => 'number',
-      '#title' => $this->t('Editor Width'),
-      '#description' => $this->t('Width of the image editor in pixels.<br>Leave blank for full width (100%).'),
+      '#title' => $this->t('Width'),
+      '#description' => $this->t('Set width in pixels, or leave at 0 for full width.'),
       '#default_value' => (int) $config->get('editor_width') ?: 0,
       '#field_suffix' => $this->t('px'),
       '#min' => 0,
@@ -110,8 +125,8 @@ class SettingsForm extends ConfigFormBase {
 
     $form['ui_settings']['editor_height'] = [
       '#type' => 'number',
-      '#title' => $this->t('Editor Height'),
-      '#description' => $this->t('Height of the image editor in pixels.'),
+      '#title' => $this->t('Height'),
+      '#description' => $this->t('Editor height in pixels.'),
       '#default_value' => (int) $config->get('editor_height') ?: 600,
       '#field_suffix' => $this->t('px'),
       '#min' => 300,
@@ -120,11 +135,11 @@ class SettingsForm extends ConfigFormBase {
 
     $form['ui_settings']['theme'] = [
       '#type' => 'select',
-      '#title' => $this->t('Editor Theme'),
-      '#description' => $this->t('Choose between white and black theme for the image editor.'),
+      '#title' => $this->t('Theme'),
+      '#description' => $this->t('Choose light or dark appearance.'),
       '#options' => [
-        'white' => $this->t('White Theme'),
-        'black' => $this->t('Black Theme'),
+        'white' => $this->t('Light'),
+        'black' => $this->t('Dark'),
       ],
       '#default_value' => $config->get('theme') ?: 'white',
     ];
@@ -162,39 +177,39 @@ class SettingsForm extends ConfigFormBase {
     return [
       'crop' => [
         'title' => $this->t('Crop'),
-        'description' => $this->t('Crop images to desired dimensions.'),
+        'description' => $this->t('Trim images to specific dimensions or aspect ratios.'),
       ],
       'flip' => [
         'title' => $this->t('Flip'),
-        'description' => $this->t('Flip images horizontally or vertically.'),
+        'description' => $this->t('Mirror images horizontally or vertically.'),
       ],
       'rotation' => [
-        'title' => $this->t('Rotation'),
-        'description' => $this->t('Rotate images by specified angles.'),
+        'title' => $this->t('Rotate'),
+        'description' => $this->t('Turn images to any angle.'),
       ],
       'draw' => [
         'title' => $this->t('Draw'),
-        'description' => $this->t('Draw freehand on images.'),
+        'description' => $this->t('Sketch freehand lines and marks.'),
       ],
       'shape' => [
         'title' => $this->t('Shape'),
-        'description' => $this->t('Add geometric shapes to images.'),
+        'description' => $this->t('Insert circles, rectangles, and triangles.'),
       ],
       'icon' => [
         'title' => $this->t('Icon'),
-        'description' => $this->t('Add icons to images.'),
+        'description' => $this->t('Place icons and symbols.'),
       ],
       'text' => [
         'title' => $this->t('Text'),
-        'description' => $this->t('Add text annotations to images.'),
+        'description' => $this->t('Add text labels and captions.'),
       ],
       'mask' => [
         'title' => $this->t('Mask'),
-        'description' => $this->t('Apply masks and overlays to images.'),
+        'description' => $this->t('Apply overlay effects and masks.'),
       ],
       'filter' => [
         'title' => $this->t('Filter'),
-        'description' => $this->t('Apply filters and effects to images.'),
+        'description' => $this->t('Enhance images with color and effect filters.'),
       ],
     ];
   }
@@ -210,11 +225,11 @@ class SettingsForm extends ConfigFormBase {
    */
   protected function getToolIcon(string $tool): string {
     $modulePath = $this->extensionListModule->getPath('toast_image_editor');
-    $iconPath = $modulePath . '/assets/icons/ic-' . ($tool === 'rotation' ? 'rotate' : $tool) . '.svg';
+    $iconPath = $this->appRoot . '/' . $modulePath . '/assets/icons/ic-' . ($tool === 'rotation' ? 'rotate' : $tool) . '.svg';
 
-    // Check if the SVG file exists.
-    if (file_exists(DRUPAL_ROOT . '/' . $iconPath)) {
-      $svgContent = file_get_contents(DRUPAL_ROOT . '/' . $iconPath);
+    // Check if the SVG file exists and load it.
+    if (file_exists($iconPath)) {
+      $svgContent = file_get_contents($iconPath);
       if ($svgContent !== FALSE) {
         // Clean up the SVG and add classes.
         $svgContent = preg_replace('/<svg/', '<svg class="tool-icon-svg"', $svgContent, 1);

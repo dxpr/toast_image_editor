@@ -5,9 +5,26 @@ services:
     - '@entity_type.manager'
     - '@file_system'
     - '@logger.channel.toast_image_editor'
-    - '@config.factory'
     - '@file_url_generator'
     - '@request_stack'
+    - '@datetime.time'
+
+  toast_image_editor.media_form_alter:
+    class: Drupal\toast_image_editor\Service\MediaFormAlterService
+    arguments:
+    - '@toast_image_editor.image_processor'
+    - '@config.factory'
+    - '@current_user'
+
+  toast_image_editor.media_presave:
+    class: Drupal\toast_image_editor\Service\MediaPresaveService
+    arguments:
+    - '@toast_image_editor.image_processor'
+    - '@request_stack'
+    - '@logger.channel.toast_image_editor'
+    - '@current_user'
+    - '@entity_type.manager'
+    - '@messenger'
 
   logger.channel.toast_image_editor:
     parent: logger.channel_base

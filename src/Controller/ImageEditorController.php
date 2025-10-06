@@ -54,7 +54,7 @@ class ImageEditorController extends ControllerBase {
     ) {
       return new JsonResponse([
         'success' => FALSE,
-        'message' => $this->t('Access denied'),
+        'message' => $this->t('You do not have permission to edit this image.'),
       ], 403);
     }
 
@@ -62,7 +62,7 @@ class ImageEditorController extends ControllerBase {
     if (!$this->imageProcessor->canEditMedia($media)) {
       return new JsonResponse([
         'success' => FALSE,
-        'message' => $this->t('This media cannot be edited'),
+        'message' => $this->t('This media type cannot be edited.'),
       ], 400);
     }
 
@@ -71,24 +71,24 @@ class ImageEditorController extends ControllerBase {
     if (empty($imageData)) {
       return new JsonResponse([
         'success' => FALSE,
-        'message' => $this->t('No image data provided'),
+        'message' => $this->t('No image data received. Please try again.'),
       ], 400);
     }
 
     // Process and save the image.
-    $success = $this->imageProcessor->saveEditedImage($media, $imageData);
+    $result = $this->imageProcessor->saveEditedImage($media, $imageData);
 
-    if ($success) {
+    if ($result['success']) {
       return new JsonResponse([
         'success' => TRUE,
-        'message' => $this->t('Image saved successfully'),
+        'message' => $result['message'],
         'redirect' => $media->toUrl()->toString(),
       ]);
     }
 
     return new JsonResponse([
       'success' => FALSE,
-      'message' => $this->t('Failed to save image'),
+      'message' => $result['message'],
     ], 500);
   }
 

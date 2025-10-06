@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\toast_image_editor\Service;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\File\FileExists;
-use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\file\FileInterface;
 use Drupal\media\MediaInterface;
 use Drupal\media\MediaTypeInterface;
@@ -20,6 +21,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
  */
 class ImageProcessorService {
 
+  use StringTranslationTrait;
+
   /**
    * Constructs the ImageProcessorService.
    *
@@ -29,20 +32,20 @@ class ImageProcessorService {
    *   The file system service.
    * @param \Drupal\Core\Logger\LoggerChannelInterface $logger
    *   The logger channel service.
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
-   *   The configuration factory service.
    * @param \Drupal\Core\File\FileUrlGeneratorInterface $fileUrlGenerator
    *   The file url generator service.
    * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
    *   The request stack service.
+   * @param \Drupal\Component\Datetime\TimeInterface $time
+   *   The time service.
    */
   public function __construct(
     protected EntityTypeManagerInterface $entityTypeManager,
     protected FileSystemInterface $fileSystem,
     protected LoggerChannelInterface $logger,
-    protected ConfigFactoryInterface $configFactory,
     protected FileUrlGeneratorInterface $fileUrlGenerator,
     protected RequestStack $requestStack,
+    protected TimeInterface $time,
   ) {}
 
   /**
@@ -53,15 +56,18 @@ class ImageProcessorService {
    * @param string $imageData
    *   Base64 encoded image data.
    *
-   * @return bool
-   *   TRUE if the image was saved successfully, FALSE otherwise.
+   * @return array
+   *   Array with 'success' (bool) and 'message' (string) keys.
    */
-  public function saveEditedImage(MediaInterface $media, string $imageData): bool {
+  public function saveEditedImage(MediaInterface $media, string $imageData): array {
     try {
       $mediaType = $this->entityTypeManager->getStorage('media_type')->load($media->bundle());
       if (!$mediaType instanceof MediaTypeInterface) {
         $this->logger->error('Media type not found for media @id.', ['@id' => $media->id()]);
-        return FALSE;
+        return [
+          'success' => FALSE,
+          'message' => $this->t('Cannot save image. Media configuration error. Contact your site administrator.'),
+        ];
       }
 
       $sourceField = $media->getSource()->getSourceFieldDefinition($mediaType);
@@ -69,13 +75,19 @@ class ImageProcessorService {
 
       if (!$media->hasField($fieldName) || $media->get($fieldName)->isEmpty()) {
         $this->logger->error('Media entity @id does not have a valid source field.', ['@id' => $media->id()]);
-        return FALSE;
+        return [
+          'success' => FALSE,
+          'message' => $this->t('Cannot save image. No source file found.'),
+        ];
       }
 
       $fileEntity = $media->get($fieldName)->entity;
       if (!$fileEntity instanceof FileInterface) {
         $this->logger->error('Could not load file entity for media @id.', ['@id' => $media->id()]);
-        return FALSE;
+        return [
+          'success' => FALSE,
+          'message' => $this->t('Cannot save image. File is missing or corrupted.'),
+        ];
       }
 
       // Extract and decode base64 image data with memory optimization.
@@ -83,6 +95,8 @@ class ImageProcessorService {
 
       // Check base64 data length to prevent memory issues.
       $estimatedSize = (strlen($base64Data) * 3) / 4;
+
+      // Check memory limit to prevent memory issues.
       $memoryLimit = ini_get('memory_limit');
       $memoryLimitBytes = $this->convertToBytes($memoryLimit);
 
@@ -92,7 +106,10 @@ class ImageProcessorService {
           '@size' => $estimatedSize,
           '@limit' => $memoryLimit,
         ]);
-        return FALSE;
+        return [
+          'success' => FALSE,
+          'message' => $this->t('Image is too large for the server to process. Try editing a smaller image or contact your site administrator.'),
+        ];
       }
 
       $decodedData = base64_decode($base64Data, TRUE);
@@ -102,7 +119,10 @@ class ImageProcessorService {
 
       if ($decodedData === FALSE || $decodedData === '') {
         $this->logger->error('Invalid base64 image data for media @id.', ['@id' => $media->id()]);
-        return FALSE;
+        return [
+          'success' => FALSE,
+          'message' => $this->t('Image data is corrupted. Please refresh the page and try again.'),
+        ];
       }
 
       // Create a new revision.
@@ -114,11 +134,15 @@ class ImageProcessorService {
       $result = $this->fileSystem->saveData($decodedData, $uri, FileExists::Replace);
       if (!$result) {
         $this->logger->error('Failed to save edited image data for media @id.', ['@id' => $media->id()]);
-        return FALSE;
+        return [
+          'success' => FALSE,
+          'message' => $this->t('Cannot write to file system. Check file permissions or contact your site administrator.'),
+        ];
       }
 
-      // Update file size.
+      // Update file size and changed timestamp.
       $fileEntity->setSize(strlen($decodedData));
+      $fileEntity->setChangedTime($this->time->getRequestTime());
       $fileEntity->save();
 
       // Clear image style cache for this image.
@@ -127,14 +151,22 @@ class ImageProcessorService {
       // Note: Don't save the media entity here to avoid recursion.
       // The media entity will be saved by the calling form/process.
       $this->logger->info('Successfully saved edited image for media @id.', ['@id' => $media->id()]);
-      return TRUE;
+      return [
+        'success' => TRUE,
+        'message' => $this->t('Your changes have been saved.'),
+      ];
     }
     catch (\Exception $e) {
       $this->logger->error('Error saving edited image for media @id: @message', [
         '@id' => $media->id(),
         '@message' => $e->getMessage(),
       ]);
-      return FALSE;
+      return [
+        'success' => FALSE,
+        'message' => $this->t('Unexpected error: @error. Please try again or contact your site administrator.', [
+          '@error' => $e->getMessage(),
+        ]),
+      ];
     }
   }
 
@@ -214,6 +246,11 @@ class ImageProcessorService {
     // request base.
     $fileUrl = $this->fileUrlGenerator->generateString($file->getFileUri());
 
+    // Add cache-busting parameter using file change time.
+    $cacheBuster = $file->getChangedTime();
+    $separator = str_contains($fileUrl, '?') ? '&' : '?';
+    $fileUrl .= $separator . 'v=' . $cacheBuster;
+
     // Get the current request to ensure we use the correct domain.
     $request = $this->requestStack->getCurrentRequest();
     $host = $request->getHttpHost();
@@ -227,8 +264,10 @@ class ImageProcessorService {
       }
     }
 
-    // Fallback to the service method.
-    return $this->fileUrlGenerator->generateAbsoluteString($file->getFileUri());
+    // Fallback to the service method with cache buster.
+    $fallbackUrl = $this->fileUrlGenerator->generateAbsoluteString($file->getFileUri());
+    $separator = str_contains($fallbackUrl, '?') ? '&' : '?';
+    return $fallbackUrl . $separator . 'v=' . $cacheBuster;
   }
 
   /**
