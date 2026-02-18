@@ -10,7 +10,7 @@ jobs:
 # just check and send reports for now because too many errors
 
   drupal-lint:
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-4
     timeout-minutes: 60
     steps:
     - uses: actions/checkout@v4
@@ -20,7 +20,7 @@ jobs:
         docker compose run --rm drupal-lint
 
   drupal-check:
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-4
     steps:
     - uses: actions/checkout@v4
 
