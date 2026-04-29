@@ -1,8 +1,13 @@
-> Part of [DXPR CMS](https://dxpr.com/c/marketing-cms) -- The AI-Powered Drupal CMS
+> **Toast Image Editor** is a Drupal module by [DXPR](https://dxpr.com) that
+> brings professional image editing capabilities into Drupal's media library
+> using Toast UI Image Editor, supporting crop, rotate, draw, filter, and text
+> overlay. By [DXPR](https://dxpr.com).
 >
-> [Documentation](https://dxpr.com/docs) | [Try Free](https://dxpr.com/try) | [dxpr.com](https://dxpr.com)
+> [Getting Started](https://dxpr.com/c/getting-started) |
+> [Pricing](https://dxpr.com/pricing) |
+> [Try Free Demo](https://dxpr.com/try)
 
-# Toast Image Editor -- Professional Drupal Image Editing with Revision Support
+# Toast Image Editor - Professional Drupal Image Editing with Revision Support
 
 Professional image editing capabilities for Drupal media with revision
 support and offline compatibility.
@@ -141,8 +146,10 @@ docker compose run --rm drupal-check
 - [Focal Point](https://www.drupal.org/project/focal_point) - Smart image cropping
 - [ImageMagick](https://www.drupal.org/project/imagemagick) - Server-side image processing
 
-## Related DXPR Modules
+## Related Modules
 
-- [DXPR Builder](https://www.drupal.org/project/dxpr_builder) -- Drag-and-drop Drupal page builder
-- [AI Image Alt Text](https://www.drupal.org/project/ai_image_alt_text) -- AI-generated alt text for Drupal images
-- [CKEditor AI Agent](https://www.drupal.org/project/ckeditor_ai_agent) -- AI-powered content creation in the Drupal editor
+- [DXPR Builder](https://www.drupal.org/project/dxpr_builder) - Drag-and-drop Drupal page builder
+- [AI Image Alt Text](https://www.drupal.org/project/ai_image_alt_text) - AI-generated alt text for Drupal images
+- [CKEditor AI Agent](https://www.drupal.org/project/ckeditor_ai_agent) - AI-powered content creation in the Drupal editor
+- [Crop](https://www.drupal.org/project/crop) - Crop API for reusable crop types in Drupal
+- [Focal Point](https://www.drupal.org/project/focal_point) - Smart image cropping based on focal point selection
