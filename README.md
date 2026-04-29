@@ -148,8 +148,7 @@ docker compose run --rm drupal-check
 
 ## Related Modules
 
-- [DXPR Builder](https://www.drupal.org/project/dxpr_builder) - Drag-and-drop Drupal page builder
-- [AI Image Alt Text](https://www.drupal.org/project/ai_image_alt_text) - AI-generated alt text for Drupal images
-- [CKEditor AI Agent](https://www.drupal.org/project/ckeditor_ai_agent) - AI-powered content creation in the Drupal editor
-- [Crop](https://www.drupal.org/project/crop) - Crop API for reusable crop types in Drupal
-- [Focal Point](https://www.drupal.org/project/focal_point) - Smart image cropping based on focal point selection
+- [Media](https://www.drupal.org/project/drupal) - Required core module; the editor attaches to media edit forms and creates media revisions on save
+- [File](https://www.drupal.org/project/drupal) - Required core module used for file entity storage, URI handling, and file system writes
+- [Image](https://www.drupal.org/project/drupal) - Core module used to flush image style derivatives when an edited image is saved
+- [AI Image Alt Text](https://www.drupal.org/project/ai_image_alt_text) - Generate accessible alt text with AI after editing images
