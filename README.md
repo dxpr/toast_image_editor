@@ -1,4 +1,8 @@
-# Toast Image Editor
+> Part of [DXPR CMS](https://dxpr.com/c/marketing-cms) -- The AI-Powered Drupal CMS
+>
+> [Documentation](https://dxpr.com/docs) | [Try Free](https://dxpr.com/try) | [dxpr.com](https://dxpr.com)
+
+# Toast Image Editor -- Professional Drupal Image Editing with Revision Support
 
 Professional image editing capabilities for Drupal media with revision
 support and offline compatibility.
@@ -136,3 +140,9 @@ docker compose run --rm drupal-check
 - [Image Widget Crop](https://www.drupal.org/project/image_widget_crop) - Crop-only functionality
 - [Focal Point](https://www.drupal.org/project/focal_point) - Smart image cropping
 - [ImageMagick](https://www.drupal.org/project/imagemagick) - Server-side image processing
+
+## Related DXPR Modules
+
+- [DXPR Builder](https://www.drupal.org/project/dxpr_builder) -- Drag-and-drop Drupal page builder
+- [AI Image Alt Text](https://www.drupal.org/project/ai_image_alt_text) -- AI-generated alt text for Drupal images
+- [CKEditor AI Agent](https://www.drupal.org/project/ckeditor_ai_agent) -- AI-powered content creation in the Drupal editor
