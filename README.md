@@ -1,4 +1,13 @@
-# Toast Image Editor
+> **Toast Image Editor** is a Drupal module by [DXPR](https://dxpr.com) that
+> brings professional image editing capabilities into Drupal's media library
+> using Toast UI Image Editor, supporting crop, rotate, draw, filter, and text
+> overlay. By [DXPR](https://dxpr.com).
+>
+> [Getting Started](https://dxpr.com/c/getting-started) |
+> [Pricing](https://dxpr.com/pricing) |
+> [Try Free Demo](https://dxpr.com/try)
+
+# Toast Image Editor - Professional Drupal Image Editing with Revision Support
 
 Professional image editing capabilities for Drupal media with revision
 support and offline compatibility.
@@ -136,3 +145,10 @@ docker compose run --rm drupal-check
 - [Image Widget Crop](https://www.drupal.org/project/image_widget_crop) - Crop-only functionality
 - [Focal Point](https://www.drupal.org/project/focal_point) - Smart image cropping
 - [ImageMagick](https://www.drupal.org/project/imagemagick) - Server-side image processing
+
+## Related Modules
+
+- [Media](https://www.drupal.org/project/drupal) - Required core module; the editor attaches to media edit forms and creates media revisions on save
+- [File](https://www.drupal.org/project/drupal) - Required core module used for file entity storage, URI handling, and file system writes
+- [Image](https://www.drupal.org/project/drupal) - Core module used to flush image style derivatives when an edited image is saved
+- [AI Image Alt Text](https://www.drupal.org/project/ai_image_alt_text) - Generate accessible alt text with AI after editing images
