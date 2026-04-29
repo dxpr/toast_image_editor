@@ -19,7 +19,7 @@ function toast_image_editor_help(string $route_name, RouteMatchInterface $route_
   switch ($route_name) {
     case 'help.page.toast_image_editor':
       $output = '<h2>' . t('About') . '</h2>';
-      $output .= '<p>' . t('Edit images directly in Drupal. This module lets you crop, rotate, add text, apply filters, and more—right from the media edit screen. All changes create new revisions, so your original images stay safe.') . '</p>';
+      $output .= '<p>' . t('Edit images directly in Drupal. This module lets you crop, rotate, add text, and apply filters right from the media edit screen. All changes create new revisions, so your original images stay safe.') . '</p>';
 
       $output .= '<h2>' . t('What you can do') . '</h2>';
       $output .= '<ul>';
@@ -27,7 +27,7 @@ function toast_image_editor_help(string $route_name, RouteMatchInterface $route_
       $output .= '<li>' . t('Draw, add shapes, and insert text') . '</li>';
       $output .= '<li>' . t('Apply filters and color effects') . '</li>';
       $output .= '<li>' . t('Track changes with automatic media revisions') . '</li>';
-      $output .= '<li>' . t('Work offline—no external dependencies') . '</li>';
+      $output .= '<li>' . t('Work offline with no external dependencies') . '</li>';
       $output .= '</ul>';
 
       $output .= '<h2>' . t('Quick start') . '</h2>';
@@ -57,8 +57,8 @@ function toast_image_editor_help(string $route_name, RouteMatchInterface $route_
         ':permissions' => Url::fromRoute('user.admin_permissions', [], ['fragment' => 'module-toast_image_editor'])->toString(),
       ]) . '</p>';
       $output .= '<ul>';
-      $output .= '<li>' . t('<strong>Use toast image editor</strong> — Edit images') . '</li>';
-      $output .= '<li>' . t('<strong>Administer Toast Image Editor</strong> — Change module settings') . '</li>';
+      $output .= '<li>' . t('<strong>Use toast image editor</strong>: allows editing images') . '</li>';
+      $output .= '<li>' . t('<strong>Administer Toast Image Editor</strong>: allows changing module settings') . '</li>';
       $output .= '</ul>';
 
       return $output;
