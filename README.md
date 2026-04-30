@@ -3,9 +3,9 @@
 > using Toast UI Image Editor, supporting crop, rotate, draw, filter, and text
 > overlay. By [DXPR](https://dxpr.com).
 >
-> [Getting Started](https://dxpr.com/c/getting-started) |
+> [Getting Started](https://dxpr.com/c/marketing-cms) |
 > [Pricing](https://dxpr.com/pricing) |
-> [Try Free Demo](https://dxpr.com/try)
+> [Try Free Demo](https://try.dxpr.com)
 
 # Toast Image Editor - Professional Drupal Image Editing with Revision Support
 
