@@ -108,6 +108,9 @@
     }
 
     try {
+      const containerHeight = parseInt(config.height, 10) || 600;
+      const toolbarOverhead = 280;
+
       // Initialize the editor with minimal configuration
       Drupal.toastImageEditor.instance = new tui.ImageEditor('#toast-image-editor', {
         includeUI: {
@@ -123,7 +126,7 @@
           menuBarPosition: 'bottom'
         },
         cssMaxWidth: 1000,
-        cssMaxHeight: 800,
+        cssMaxHeight: Math.max(containerHeight - toolbarOverhead, 200),
         usageStatistics: false
       });
 
