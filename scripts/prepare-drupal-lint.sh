@@ -17,8 +17,8 @@ echo "TARGET_DRUPAL_CORE_VERSION: $TARGET_DRUPAL_CORE_VERSION"
 # Add this line to avoid the plugin prompt
 composer config --global allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
 
-composer global require drupal/coder --dev
-composer global require phpcompatibility/php-compatibility --dev
+# Solve phpcs 3 with coder 8.3 and PHPCompatibility 9 together; coder 9 needs phpcs 4.
+composer global require drupal/coder:^8.3 phpcompatibility/php-compatibility:^9.3 squizlabs/php_codesniffer:^3.13 --dev
 
 export PATH="$PATH:$COMPOSER_HOME/vendor/bin"
 
