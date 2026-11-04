@@ -1,17 +1,3 @@
-toast_image_editor.media_save:
-  path: '/media/{media}/save-image'
-  defaults:
-    _controller: '\Drupal\toast_image_editor\Controller\ImageEditorController::save'
-  requirements:
-    _permission: 'use toast image editor'
-    _entity_access: 'media.update'
-    _method: 'POST'
-    media: \d+
-  options:
-    parameters:
-      media:
-        type: entity:media
-
 toast_image_editor.settings:
   path: '/admin/config/media/toast-image-editor'
   defaults:
