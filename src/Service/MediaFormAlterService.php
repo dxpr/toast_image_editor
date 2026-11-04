@@ -9,7 +9,6 @@ use Drupal\Core\Entity\EntityFormInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\Core\Url;
 use Drupal\media\MediaInterface;
 use Drupal\toast_image_editor\Form\SettingsForm;
 
@@ -161,7 +160,6 @@ class MediaFormAlterService {
       'height' => $config->get('editor_height') ? $config->get('editor_height') . 'px' : '600px',
       'theme' => $config->get('theme') ?: 'white',
       'mediaId' => $media->id(),
-      'saveUrl' => Url::fromRoute('toast_image_editor.media_save', ['media' => $media->id()])->toString(),
       'enabledTools' => $config->get('enabled_tools') ?: SettingsForm::defaultTools(),
       'imageUrl' => $this->imageProcessor->getImageUrl($media),
     ];
