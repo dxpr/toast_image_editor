@@ -23,4 +23,4 @@ jobs:
       run: |
         docker compose run --rm drupal-check
       env:
-        DRUPAL_RECOMMENDED_PROJECT: ${{ secrets.DRUPAL_RECOMMENDED_PROJECT }}
+        DRUPAL_RECOMMENDED_PROJECT: 11.x-dev
