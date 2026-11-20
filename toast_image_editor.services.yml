@@ -29,3 +29,12 @@ services:
   logger.channel.toast_image_editor:
     parent: logger.channel_base
     arguments: ['toast_image_editor']
+
+  Drupal\toast_image_editor\Hook\ToastImageEditorHooks:
+    class: Drupal\toast_image_editor\Hook\ToastImageEditorHooks
+    autowire: true
+    arguments:
+      - '@toast_image_editor.media_form_alter'
+      - '@toast_image_editor.media_presave'
+      - '@messenger'
+      - '@logger.factory'
